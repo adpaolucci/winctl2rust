@@ -1,0 +1,21 @@
+[package]
+name = "winctl2rust-report"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Multi-format tabular export, SHA-256/512 Merkle chain-of-custody manifests, and JSONL action audit logging for winctl2rust"
+
+[dependencies]
+winctl2rust-core.workspace = true
+guap-table.workspace = true
+guap-export.workspace = true
+guap-mcp.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

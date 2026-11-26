@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "winctl2rust": {
+      "command": "winctl2rust",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "RUST_LOG": "warn"
+      }
+    }
+  }
+}

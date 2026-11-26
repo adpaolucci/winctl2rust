@@ -1,0 +1,38 @@
+[package]
+name = "winctl2rust-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Unified clap 4.6 CLI binary (winctl2rust) for all 22 non-hooking control, audio, display, desktop, export, GUI, and MCP tools"
+
+[[bin]]
+name = "winctl2rust"
+path = "src/main.rs"
+
+[dependencies]
+winctl2rust-core.workspace = true
+winctl2rust-report.workspace = true
+winctl2rust-cmd.workspace = true
+winctl2rust-audio.workspace = true
+winctl2rust-display.workspace = true
+winctl2rust-desktop.workspace = true
+winctl2rust-mcp.workspace = true
+guap-table.workspace = true
+guap-export.workspace = true
+guap-mcp.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+ctrlc.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+winctl2rust-cmd = { path = "../winctl2rust-cmd", features = ["test-support"] }
+winctl2rust-audio = { path = "../winctl2rust-audio", features = ["test-support"] }
+winctl2rust-display = { path = "../winctl2rust-display", features = ["test-support"] }
+winctl2rust-desktop = { path = "../winctl2rust-desktop", features = ["test-support"] }

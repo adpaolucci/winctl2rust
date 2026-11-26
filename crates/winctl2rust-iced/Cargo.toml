@@ -1,0 +1,29 @@
+[package]
+name = "winctl2rust-iced"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Cross-platform pure-Rust Iced 0.14 GUI console (guap-gui-iced) for winctl2rust"
+
+[[bin]]
+name = "winctl2rust-iced"
+path = "src/main.rs"
+
+[dependencies]
+winctl2rust-core.workspace = true
+winctl2rust-mcp.workspace = true
+guap-table.workspace = true
+guap-gui-iced.workspace = true
+iced.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+winctl2rust-cmd = { path = "../winctl2rust-cmd", features = ["test-support"] }
+winctl2rust-audio = { path = "../winctl2rust-audio", features = ["test-support"] }
+winctl2rust-display = { path = "../winctl2rust-display", features = ["test-support"] }
+winctl2rust-desktop = { path = "../winctl2rust-desktop", features = ["test-support"] }

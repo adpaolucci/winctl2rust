@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+
+PackageIdentifier: adpaolucci.winctl2rust
+PackageVersion: 0.1.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: winctl2rust.exe
+    PortableCommandAlias: winctl2rust
+  - RelativeFilePath: winctl2rust-win32.exe
+    PortableCommandAlias: winctl2rust-win32
+  - RelativeFilePath: winctl2rust-iced.exe
+    PortableCommandAlias: winctl2rust-iced
+  - RelativeFilePath: winctl2rust-mcp.exe
+    PortableCommandAlias: winctl2rust-mcp
+ReleaseDate: 2026-11-23
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/adpaolucci/winctl2rust/releases/download/v0.1.0/winctl2rust-x86_64-pc-windows-msvc.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+ManifestType: installer
+ManifestVersion: 1.9.0

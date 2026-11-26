@@ -1,0 +1,82 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/winctl2rust-core",
+    "crates/winctl2rust-report",
+    "crates/winctl2rust-cmd",
+    "crates/winctl2rust-audio",
+    "crates/winctl2rust-display",
+    "crates/winctl2rust-desktop",
+    "crates/winctl2rust-mcp",
+    "crates/winctl2rust-cli",
+    "crates/winctl2rust-win32",
+    "crates/winctl2rust-iced",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "Apache-2.0"
+repository = "https://github.com/adpaolucci/winctl2rust"
+homepage = "https://winctl2rust.guap.ca"
+documentation = "https://winctl2rust.guap.ca"
+authors = ["Winctl2Rust Contributors"]
+description = "100% pure-Rust Windows control, audio, display DDC/CI & EDID, desktop automation, CLI, dual Win32/Iced GUI, and MCP server suite (22 non-hooking tools)"
+keywords = ["windows", "win32", "audio", "edid", "mcp"]
+categories = ["command-line-utilities", "gui", "os::windows-apis"]
+
+[workspace.dependencies]
+guap-table = { path = "../guap-kit/crates/guap-table" }
+guap-export = { path = "../guap-kit/crates/guap-export" }
+guap-gui-win32 = { path = "../guap-kit/crates/guap-gui-win32" }
+guap-gui-iced = { path = "../guap-kit/crates/guap-gui-iced" }
+guap-mcp = { path = "../guap-kit/crates/guap-mcp" }
+
+winctl2rust-core = { path = "crates/winctl2rust-core" }
+winctl2rust-report = { path = "crates/winctl2rust-report" }
+winctl2rust-cmd = { path = "crates/winctl2rust-cmd" }
+winctl2rust-audio = { path = "crates/winctl2rust-audio" }
+winctl2rust-display = { path = "crates/winctl2rust-display" }
+winctl2rust-desktop = { path = "crates/winctl2rust-desktop" }
+winctl2rust-mcp = { path = "crates/winctl2rust-mcp" }
+
+anyhow = "1.0"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.13"
+sha2 = "0.11"
+csv = "1.4"
+dirs = "7.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+clap = { version = "4.6", features = ["derive"] }
+tokio = "1.54"
+ctrlc = "3.5"
+windows = "0.62"
+windows-core = "0.62"
+winsafe = { version = "0.0.29", features = ["gui", "shell"] }
+iced = { version = "0.14", features = ["wgpu", "tiny-skia", "tokio"] }
+rusqlite = { version = "0.34", features = ["bundled"] }
+rfd = "0.18"
+arboard = "3.7"
+tempfile = "3.27"
+walkdir = "2.5"
+winreg = "0.56"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "ico"] }
+
+[profile.dev.package.clap]
+opt-level = 2
+[profile.dev.package.clap_builder]
+opt-level = 2
+[profile.dev.package.clap_derive]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

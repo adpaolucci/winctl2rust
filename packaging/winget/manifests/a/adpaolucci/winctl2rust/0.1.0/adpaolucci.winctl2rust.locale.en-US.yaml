@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+
+PackageIdentifier: adpaolucci.winctl2rust
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: adpaolucci
+PublisherUrl: https://github.com/adpaolucci
+PublisherSupportUrl: https://github.com/adpaolucci/winctl2rust/issues
+PackageName: Winctl2Rust
+PackageUrl: https://winctl2rust.guap.ca
+License: Apache-2.0
+LicenseUrl: https://github.com/adpaolucci/winctl2rust/blob/main/LICENSE
+Copyright: Copyright (c) 2026 adpaolucci
+ShortDescription: 100% pure-Rust non-hooking Windows command, CoreAudio, display DDC/CI & EDID, desktop automation, CLI, dual GUI, and MCP suite.
+Description: >-
+  winctl2rust is a pure-Rust suite replacing 22 non-hooking Windows control utilities across command execution
+  (NirCmd, AdvancedRun, RunFromProcess, AtNow), CoreAudio volume/rules, multi-monitor DDC/CI & EDID, and
+  desktop/clipboard/hotkey/font/webcam control, backed by guap-kit, dual WinSafe Win32 + Iced 0.14 GUIs,
+  air-gapped Merkle-verified exports, and a policy-gated JSON-RPC 2.0 stdio MCP server.
+Moniker: winctl2rust
+Tags:
+  - windows
+  - automation
+  - coreaudio
+  - edid
+  - win32
+  - rust
+  - cli
+  - gui
+  - mcp
+ReleaseNotesUrl: https://github.com/adpaolucci/winctl2rust/releases/tag/v0.1.0
+Documentations:
+  - DocumentLabel: Project Wiki
+    DocumentUrl: https://github.com/adpaolucci/winctl2rust/wiki
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0
