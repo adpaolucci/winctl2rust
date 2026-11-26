@@ -7,9 +7,9 @@ Thank you for your interest in contributing to `winctl2rust`!
 The workspace targets a 10-crate modular architecture (staged across M3.1–M3.4):
 - `crates/winctl2rust-core` (M3.1): Core types, `WinctlError`, `ExecutionOptions`, R4 compliance validators, privilege probe traits, 22-tool catalog, and stderr logging (`#![forbid(unsafe_code)]`).
 - `crates/winctl2rust-report` (M3.1): Multi-format tabular exports (CSV, TSV, JSON, JSONL, HTML, Markdown), SHA-256/SHA-512 Merkle chain-of-custody manifests via `guap-export`, and JSONL action audit logging (`#![forbid(unsafe_code)]`).
-- `crates/winctl2rust-cmd` (M3.1): Non-hooking command execution (`NirCmd`, `AdvancedRun`, `RunFromProcess`, `AtNow`) with `unsafe` Win32/COM calls isolated behind `CmdBackend` in `#[cfg(windows)] mod win32_backend;`.
-- `crates/winctl2rust-audio` (M3.2): CoreAudio & input rule tools (`SoundVolumeView`, `svcl`, `AppAudioConfig`, `Volumouse`).
-- `crates/winctl2rust-display` (M3.2): Multi-monitor, DDC/CI, and pure-Rust VESA EDID 1.3/1.4 + CEA-861 tools (`MultiMonitorTool`, `ControlMyMonitor`, `MonitorInfoView`, `DumpEDID`).
+- `crates/winctl2rust-cmd` (M3.1): Non-hooking command execution (`cmd script`, `cmd run`, `cmd from-proc`, `cmd atnow`) with `unsafe` Win32/COM calls isolated behind `CmdBackend` in `#[cfg(windows)] mod win32_backend;`.
+- `crates/winctl2rust-audio` (M3.2): CoreAudio & input rule tools (`audio view`, `audio ctl`, `audio app-config`, `audio wheel`).
+- `crates/winctl2rust-display` (M3.2): Multi-monitor, DDC/CI, and pure-Rust VESA EDID 1.3/1.4 + CEA-861 tools (`display monitors`, `display ddc`, `display info`, `display edid`).
 - `crates/winctl2rust-desktop` (M3.3): Window, clipboard, hotkey, keyboard, OpenType font, and Media Foundation webcam tools.
 - `crates/winctl2rust-mcp` (M3.4): Policy-gated JSON-RPC 2.0 `stdio` server built on `guap-mcp`.
 - `crates/winctl2rust-cli` (M3.4): Unified `clap` CLI binary (`winctl2rust`).

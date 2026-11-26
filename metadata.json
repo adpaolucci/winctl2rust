@@ -13,8 +13,8 @@
   ],
   "requestFramePermissions": [],
   "majorCapabilities": [
-    "Non-hooking command launcher & scheduler (NirCmd DSL, AdvancedRun, RunFromProcess, AtNow)",
-    "CoreAudio endpoint/session control, PropertyStore config & Volumouse rule engine",
+    "Non-hooking command script runner, launch profiles, parent-attributed spawning & Task Scheduler v2",
+    "CoreAudio endpoint/session control, CLI verbs, PropertyStore per-app routing & mouse wheel volume rules",
     "VESA EDID 1.3/1.4 + CEA-861 parser, CCD multi-monitor layout & DDC/CI VCP control",
     "Desktop window/clipboard/hotkey/keyboard/OpenType font/Media Foundation webcam tools",
     "Policy-gated stdio MCP JSON-RPC 2.0 server, dual Win32/Iced GUIs & Merkle audit exports"

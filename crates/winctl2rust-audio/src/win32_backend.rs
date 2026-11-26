@@ -58,9 +58,9 @@ use crate::app_config::{
 use crate::backend::{
     AppPropertyStorePatch, AudioBackend, AudioDeviceState, AudioDirection, AudioEndpointItem, AudioItemKind,
     AudioStateSnapshot, DefaultRole, ListenerOptions, MuteAction, PointerWheelEvent, RawAppPropertyStoreRecord,
-    ScreenEdgeKind, VolumouseActionResult, VolumouseRule, resolve_audio_target,
+    ScreenEdgeKind, WheelActionResult, WheelRule, resolve_audio_target,
 };
-use crate::volumouse::{apply_volumouse_rule, find_matching_rule};
+use crate::wheel::{apply_wheel_rule, find_matching_rule};
 
 const CLSID_CPOLICY_CONFIG_CLIENT: GUID = GUID::from_u128(0x870af99c_171d_4f9e_af0d_e63df40c2bc9);
 const CLSID_CPOLICY_CONFIG_VISTA_CLIENT: GUID = GUID::from_u128(0x294935ce_f637_4e7c_a41b_ab255460b862);
@@ -1290,16 +1290,16 @@ impl AudioBackend for Win32AudioBackend {
         Ok(())
     }
 
-    fn run_volumouse_listener(
+    fn run_wheel_listener(
         &self,
-        rules: &[VolumouseRule],
+        rules: &[WheelRule],
         opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<VolumouseActionResult>> {
+    ) -> WinctlResult<Vec<WheelActionResult>> {
         let hinstance = unsafe { GetModuleHandleW(None) }.map_err(|e| map_win32_err(e, "GetModuleHandleW"))?;
-        let class_name = w!("Winctl2RustVolumouseRawInput");
+        let class_name = w!("Winctl2RustWheelRawInput");
         let wc = WNDCLASSEXW {
             cbSize: size_of::<WNDCLASSEXW>() as u32,
-            lpfnWndProc: Some(volumouse_wnd_proc),
+            lpfnWndProc: Some(wheel_wnd_proc),
             hInstance: hinstance.into(),
             lpszClassName: class_name,
             ..Default::default()
@@ -1310,7 +1310,7 @@ impl AudioBackend for Win32AudioBackend {
             CreateWindowExW(
                 Default::default(),
                 class_name,
-                w!("Winctl2RustVolumouseSink"),
+                w!("Winctl2RustWheelSink"),
                 Default::default(),
                 0,
                 0,
@@ -1363,10 +1363,10 @@ impl AudioBackend for Win32AudioBackend {
                         && let Ok(target_item) = resolve_audio_target(&items, &target)
                     {
                         let current = target_item.volume_percent;
-                        if let Some(matched) = apply_volumouse_rule(&rule, &ev, current)
+                        if let Some(matched) = apply_wheel_rule(&rule, &ev, current)
                             && let Ok(snap) = self.set_volume_scalar(&target, matched.new_percent / 100.0)
                         {
-                            results.push(VolumouseActionResult {
+                            results.push(WheelActionResult {
                                 rule_id: matched.rule_id,
                                 target_device: target,
                                 previous_percent: current,
@@ -1524,7 +1524,7 @@ fn query_reg_binary(hkey: HKEY, name: &str) -> Option<Vec<u8>> {
     Some(buf)
 }
 
-unsafe extern "system" fn volumouse_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe extern "system" fn wheel_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 

@@ -5,7 +5,7 @@ use guap_table::{
 };
 use serde_json::Value;
 
-use crate::backend::{DesktopBackend, SysExportItem, format_hwnd};
+use crate::backend::{CtrlExportItem, DesktopBackend, format_hwnd};
 
 /// 32-bit WOW64 binary layout for `LVITEMW` (used when a 64-bit host reads a 32-bit target process).
 /// Strictly a data layout for `LVM_GETITEMW` — never executable code or DLL injection.
@@ -68,7 +68,7 @@ pub fn decode_utf16_nul_terminated(units: &[u16]) -> String {
     String::from_utf16_lossy(&units[..end])
 }
 
-pub fn is_supported_sysexport_class(class_name: &str) -> bool {
+pub fn is_supported_ctrl_export_class(class_name: &str) -> bool {
     let lower = class_name.to_ascii_lowercase();
     lower.contains("syslistview32")
         || lower.contains("systreeview32")
@@ -77,10 +77,10 @@ pub fn is_supported_sysexport_class(class_name: &str) -> bool {
         || lower == "edit"
 }
 
-pub fn sysexport_table_schema() -> TableSchema {
+pub fn ctrl_export_table_schema() -> TableSchema {
     TableSchema::new(
-        "desktop_sysexport",
-        "SysExporter Control Data",
+        "desktop_ctrl_export",
+        "Control Data Export",
         vec![
             ColumnDef::new("source_hwnd", "Source HWND", ColumnType::Hex).with_width_hint(110),
             ColumnDef::new("control_class", "Control Class", ColumnType::Text).with_width_hint(140),
@@ -93,7 +93,7 @@ pub fn sysexport_table_schema() -> TableSchema {
     )
 }
 
-pub fn sysexport_item_to_row(id: u64, item: &SysExportItem) -> Row {
+pub fn ctrl_export_item_to_row(id: u64, item: &CtrlExportItem) -> Row {
     Row::new(
         id,
         vec![
@@ -109,27 +109,27 @@ pub fn sysexport_item_to_row(id: u64, item: &SysExportItem) -> Row {
     .with_detail_json(serde_json::to_value(item).unwrap_or(Value::Null))
 }
 
-pub struct SysExportTableProvider {
+pub struct CtrlExportTableProvider {
     backend: Arc<dyn DesktopBackend>,
 }
 
-impl SysExportTableProvider {
+impl CtrlExportTableProvider {
     pub fn new(backend: Arc<dyn DesktopBackend>) -> Self {
         Self { backend }
     }
 }
 
-impl TableProvider for SysExportTableProvider {
+impl TableProvider for CtrlExportTableProvider {
     fn tool_id(&self) -> &'static str {
-        "desktop_sysexport"
+        "desktop_ctrl_export"
     }
 
     fn description(&self) -> &'static str {
-        "Read SysListView32/SysTreeView32/ListBox/ComboBox text via non-injecting cross-process messages (SysExporter)"
+        "Read SysListView32/SysTreeView32/ListBox/ComboBox text via non-injecting cross-process messages"
     }
 
     fn schema(&self) -> TableSchema {
-        sysexport_table_schema()
+        ctrl_export_table_schema()
     }
 
     fn is_read_only(&self) -> bool {
@@ -144,7 +144,7 @@ impl TableProvider for SysExportTableProvider {
         let rows: Vec<Row> = items
             .iter()
             .enumerate()
-            .map(|(idx, item)| sysexport_item_to_row(idx as u64 + 1, item))
+            .map(|(idx, item)| ctrl_export_item_to_row(idx as u64 + 1, item))
             .collect();
         apply_query(&self.schema(), &rows, req)
     }

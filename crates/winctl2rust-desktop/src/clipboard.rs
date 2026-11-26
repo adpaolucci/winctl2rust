@@ -121,7 +121,7 @@ pub fn build_clipboard_entry(
 pub fn clipboard_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_clipboard",
-        "InsideClipboard Active Formats",
+        "Active Clipboard Formats",
         vec![
             ColumnDef::new("format_id", "Format ID", ColumnType::Uint).with_width_hint(90),
             ColumnDef::new("format_name", "Format Name", ColumnType::Text).with_width_hint(180),
@@ -172,7 +172,7 @@ impl TableProvider for ClipboardTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Inspect active Windows clipboard formats, byte sizes, SHA-256 hashes, and previews (InsideClipboard)"
+        "Inspect active Windows clipboard formats, byte sizes, SHA-256 hashes, and previews"
     }
 
     fn schema(&self) -> TableSchema {
@@ -220,7 +220,7 @@ impl ActionCommand for ClipboardControlAction {
     }
 
     fn description(&self) -> &'static str {
-        "Clear the Windows clipboard or set CF_UNICODETEXT content (InsideClipboard)"
+        "Clear the Windows clipboard or set CF_UNICODETEXT content"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -273,7 +273,7 @@ impl ActionCommand for ClipboardControlAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview InsideClipboard mutation without calling EmptyClipboard/SetClipboardData",
+                "Preview clipboard mutation without calling EmptyClipboard/SetClipboardData",
                 json!({
                     "operation": op_norm,
                     "text_len": maybe_text.as_ref().map(String::len),

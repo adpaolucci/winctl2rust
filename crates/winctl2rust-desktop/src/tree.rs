@@ -13,7 +13,7 @@ use crate::backend::{DesktopBackend, TreeControlOp, TreeWindowNode, format_hwnd,
 pub fn tree_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_tree",
-        "WinExplorer Window & Control Hierarchy",
+        "Window & Control Hierarchy",
         vec![
             ColumnDef::new("hwnd", "HWND", ColumnType::Hex).with_width_hint(110),
             ColumnDef::new("parent_hwnd", "Parent HWND", ColumnType::Hex).with_width_hint(110),
@@ -64,7 +64,7 @@ impl TableProvider for TreeTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Walk recursive HWND parent/child window trees and inspect control IDs, classes, and text (WinExplorer)"
+        "Walk recursive HWND parent/child window trees and inspect control IDs, classes, and text"
     }
 
     fn schema(&self) -> TableSchema {
@@ -121,7 +121,7 @@ impl ActionCommand for TreeControlAction {
     }
 
     fn description(&self) -> &'static str {
-        "Update child/control window text, size, position, or visibility (WinExplorer)"
+        "Update child/control window text, size, position, or visibility"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -198,7 +198,7 @@ impl ActionCommand for TreeControlAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview WinExplorer control mutation without calling SetWindowTextW/MoveWindow/ShowWindow",
+                "Preview control mutation without calling SetWindowTextW/MoveWindow/ShowWindow",
                 json!({
                     "hwnd": format_hwnd(hwnd),
                     "operation": op_norm,

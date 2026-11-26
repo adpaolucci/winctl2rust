@@ -156,7 +156,7 @@ pub fn correlate_monitor_info(
 pub fn monitor_info_schema() -> TableSchema {
     TableSchema::new(
         "display_info",
-        "MonitorInfoView Display & EDID Summary",
+        "Display & EDID Summary",
         vec![
             ColumnDef::new("monitor_name", "Monitor Name", ColumnType::Text).with_width_hint(180),
             ColumnDef::new("vendor_id", "Vendor ID", ColumnType::Text).with_width_hint(90),
@@ -188,7 +188,7 @@ impl TableProvider for MonitorInfoTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Correlate live DisplayConfig monitor targets with EDID serials, gamma, primaries, and max timings (MonitorInfoView)"
+        "Correlate live DisplayConfig monitor targets with EDID serials, gamma, primaries, and max timings"
     }
 
     fn schema(&self) -> TableSchema {

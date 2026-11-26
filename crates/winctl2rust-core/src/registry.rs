@@ -33,7 +33,7 @@ impl fmt::Display for ToolCategory {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SuiteToolInfo {
     pub tool_id: &'static str,
-    pub nirsoft_name: &'static str,
+    pub display_name: &'static str,
     pub category: ToolCategory,
     pub summary: &'static str,
     pub risk_level: ActionRiskLevel,
@@ -46,19 +46,19 @@ pub struct SuiteToolInfo {
 static SUITE_CATALOG: &[SuiteToolInfo] = &[
     // -cmd (4 tools, M3.1)
     SuiteToolInfo {
-        tool_id: "cmd_nircmd",
-        nirsoft_name: "NirCmd",
+        tool_id: "cmd_script",
+        display_name: "Command Script Runner",
         category: ToolCategory::Cmd,
-        summary: "Parse, dry-run preview, or run non-hooking NirCmd DSL commands",
+        summary: "Parse, dry-run preview, or run non-hooking command script DSL statements",
         risk_level: ActionRiskLevel::Mutating,
         requires_elevation: false,
         supports_dry_run: true,
-        table_ids: &["cmd_nircmd_preview"],
-        action_ids: &["cmd_nircmd_parse", "cmd_nircmd"],
+        table_ids: &["cmd_script_preview"],
+        action_ids: &["cmd_script_parse", "cmd_script"],
     },
     SuiteToolInfo {
         tool_id: "cmd_run",
-        nirsoft_name: "AdvancedRun",
+        display_name: "Process Launch Profiles",
         category: ToolCategory::Cmd,
         summary: "Validate or launch executables with working dir, priority, affinity, window state, and elevation profiles",
         risk_level: ActionRiskLevel::Mutating,
@@ -69,7 +69,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "cmd_from_proc",
-        nirsoft_name: "RunFromProcess",
+        display_name: "Parent-Attributed Spawner",
         category: ToolCategory::Cmd,
         summary: "Launch a child process with parent attribution via PROC_THREAD_ATTRIBUTE_PARENT_PROCESS",
         risk_level: ActionRiskLevel::PrivilegedMutating,
@@ -80,7 +80,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "cmd_atnow",
-        nirsoft_name: "AtNow",
+        display_name: "One-Shot Task Scheduler",
         category: ToolCategory::Cmd,
         summary: "Schedule one-shot delayed tasks via Windows Task Scheduler v2 ITaskService",
         risk_level: ActionRiskLevel::Mutating,
@@ -92,7 +92,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     // -audio (4 tools, M3.2)
     SuiteToolInfo {
         tool_id: "audio_view",
-        nirsoft_name: "SoundVolumeView",
+        display_name: "CoreAudio Inspector",
         category: ToolCategory::Audio,
         summary: "Inspect and control CoreAudio endpoints, sessions, and subunits",
         risk_level: ActionRiskLevel::Mutating,
@@ -102,19 +102,19 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
         action_ids: &["audio_view_control"],
     },
     SuiteToolInfo {
-        tool_id: "audio_svcl",
-        nirsoft_name: "SoundVolumeCommandLine",
+        tool_id: "audio_ctl",
+        display_name: "CoreAudio CLI Controller",
         category: ToolCategory::Audio,
         summary: "Command-line CoreAudio volume, mute, switch, and default-endpoint control",
         risk_level: ActionRiskLevel::Mutating,
         requires_elevation: false,
         supports_dry_run: true,
-        table_ids: &["audio_svcl_status"],
-        action_ids: &["audio_svcl"],
+        table_ids: &["audio_ctl_status"],
+        action_ids: &["audio_ctl"],
     },
     SuiteToolInfo {
         tool_id: "audio_app_config",
-        nirsoft_name: "AppAudioConfig",
+        display_name: "Per-App Audio Routing",
         category: ToolCategory::Audio,
         summary: "Inspect and update per-application PropertyStore audio routing configuration",
         risk_level: ActionRiskLevel::Mutating,
@@ -124,20 +124,20 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
         action_ids: &["audio_app_config_update"],
     },
     SuiteToolInfo {
-        tool_id: "audio_volumouse",
-        nirsoft_name: "Volumouse",
+        tool_id: "audio_wheel",
+        display_name: "Wheel Volume Rules",
         category: ToolCategory::Audio,
         summary: "Rule-based mouse wheel / modifier volume control via WM_INPUT/WH_MOUSE_LL",
         risk_level: ActionRiskLevel::Mutating,
         requires_elevation: false,
         supports_dry_run: true,
-        table_ids: &["audio_volumouse_rules"],
-        action_ids: &["audio_volumouse"],
+        table_ids: &["audio_wheel_rules"],
+        action_ids: &["audio_wheel"],
     },
     // -display (4 tools, M3.2)
     SuiteToolInfo {
         tool_id: "display_monitors",
-        nirsoft_name: "MultiMonitorTool",
+        display_name: "Multi-Monitor Topology",
         category: ToolCategory::Display,
         summary: "Inspect and configure multi-monitor CCD topology, primary display, and enable/disable state",
         risk_level: ActionRiskLevel::Mutating,
@@ -148,7 +148,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "display_ddc",
-        nirsoft_name: "ControlMyMonitor",
+        display_name: "DDC/CI VCP Controller",
         category: ToolCategory::Display,
         summary: "Read and write DDC/CI VCP monitor features with MCCS 2.2a dictionary",
         risk_level: ActionRiskLevel::Mutating,
@@ -159,7 +159,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "display_info",
-        nirsoft_name: "MonitorInfoView",
+        display_name: "Display & EDID Summary",
         category: ToolCategory::Display,
         summary: "Enumerate live display targets, EDID serials, and timing capabilities",
         risk_level: ActionRiskLevel::ReadOnly,
@@ -170,7 +170,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "display_edid",
-        nirsoft_name: "DumpEDID",
+        display_name: "VESA EDID Decoder",
         category: ToolCategory::Display,
         summary: "Pure-Rust VESA EDID 1.3/1.4 and CEA-861 binary block parser",
         risk_level: ActionRiskLevel::ReadOnly,
@@ -182,7 +182,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     // -desktop (10 tools, M3.3)
     SuiteToolInfo {
         tool_id: "desktop_props",
-        nirsoft_name: "GUIPropView",
+        display_name: "Window Property Inspector",
         category: ToolCategory::Desktop,
         summary: "Inspect and manipulate top-level and child window properties",
         risk_level: ActionRiskLevel::Mutating,
@@ -193,7 +193,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_windows",
-        nirsoft_name: "WinLister",
+        display_name: "Top-Level Window Lister",
         category: ToolCategory::Desktop,
         summary: "List open windows with placement bounds and minimize/maximize/close actions",
         risk_level: ActionRiskLevel::Mutating,
@@ -204,7 +204,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_tree",
-        nirsoft_name: "WinExplorer",
+        display_name: "Control Hierarchy Explorer",
         category: ToolCategory::Desktop,
         summary: "Walk recursive HWND child window trees and inspect/update control text or bounds",
         risk_level: ActionRiskLevel::Mutating,
@@ -214,19 +214,19 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
         action_ids: &["desktop_tree_control"],
     },
     SuiteToolInfo {
-        tool_id: "desktop_sysexport",
-        nirsoft_name: "SysExporter",
+        tool_id: "desktop_ctrl_export",
+        display_name: "Control Data Exporter",
         category: ToolCategory::Desktop,
         summary: "Read SysListView32/SysTreeView32 item text via non-injecting LVM_GETITEMW/TVM_GETITEMW",
         risk_level: ActionRiskLevel::ReadOnly,
         requires_elevation: false,
         supports_dry_run: false,
-        table_ids: &["desktop_sysexport"],
+        table_ids: &["desktop_ctrl_export"],
         action_ids: &[],
     },
     SuiteToolInfo {
         tool_id: "desktop_clipboard",
-        nirsoft_name: "InsideClipboard",
+        display_name: "Clipboard Format Inspector",
         category: ToolCategory::Desktop,
         summary: "Inspect active clipboard formats and payloads, or clear/set text",
         risk_level: ActionRiskLevel::Mutating,
@@ -237,7 +237,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_clip_hist",
-        nirsoft_name: "Clipboardic",
+        display_name: "Clipboard History Archive",
         category: ToolCategory::Desktop,
         summary: "Browse, restore, or purge local clipboard history archive",
         risk_level: ActionRiskLevel::Mutating,
@@ -248,7 +248,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_hotkeys",
-        nirsoft_name: "HotKeysList",
+        display_name: "Global Hotkey Inspector",
         category: ToolCategory::Desktop,
         summary: "Probe registered global hotkeys and decode [MS-SHLLINK] .lnk wHotKey bindings",
         risk_level: ActionRiskLevel::ReadOnly,
@@ -259,7 +259,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_keys",
-        nirsoft_name: "KeyboardStateView",
+        display_name: "Keyboard State Inspector",
         category: ToolCategory::Desktop,
         summary: "Inspect virtual key states, scan codes, and localized key names",
         risk_level: ActionRiskLevel::ReadOnly,
@@ -270,7 +270,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_fonts",
-        nirsoft_name: "WinFontsView",
+        display_name: "Installed Font Inspector",
         category: ToolCategory::Desktop,
         summary: "Enumerate installed fonts and parse OpenType name/OS2 tables",
         risk_level: ActionRiskLevel::ReadOnly,
@@ -281,7 +281,7 @@ static SUITE_CATALOG: &[SuiteToolInfo] = &[
     },
     SuiteToolInfo {
         tool_id: "desktop_webcam",
-        nirsoft_name: "WebCamImageSave",
+        display_name: "Webcam Frame Capture",
         category: ToolCategory::Desktop,
         summary: "Enumerate Media Foundation video capture sources and capture still frames",
         risk_level: ActionRiskLevel::Mutating,

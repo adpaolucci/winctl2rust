@@ -8,7 +8,7 @@ use winctl2rust_desktop::backend::{DesktopBackend, RawVideoFrame, UnsupportedDes
 use winctl2rust_desktop::clip_hist::{ClipHistControlAction, ClipboardArchive};
 use winctl2rust_desktop::clipboard::ClipboardControlAction;
 use winctl2rust_desktop::props::PropsControlAction;
-use winctl2rust_desktop::sysexport::{HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated};
+use winctl2rust_desktop::ctrl_export::{HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated};
 use winctl2rust_desktop::tree::TreeControlAction;
 use winctl2rust_desktop::webcam::{WebcamCaptureAction, encode_bmp_24, encode_ppm_p6};
 use winctl2rust_desktop::windows::WindowsControlAction;
@@ -79,7 +79,7 @@ fn unsupported_desktop_backend_and_r4_validation_work_without_test_support() {
 }
 
 #[test]
-fn sysexport_wow64_struct_sizes_and_utf16_helper_match_win32_abi() {
+fn ctrl_export_wow64_struct_sizes_and_utf16_helper_match_win32_abi() {
     assert_eq!(std::mem::size_of::<LvItemW32>(), 60);
     assert_eq!(std::mem::size_of::<TvItemW32>(), 40);
     assert_eq!(std::mem::size_of::<HdItemW32>(), 48);

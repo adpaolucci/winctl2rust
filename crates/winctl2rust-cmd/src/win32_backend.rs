@@ -72,8 +72,8 @@ use crate::from_proc::{
     FromProcessRequest, FromProcessResult, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS_VALUE, PROCESS_CREATE_PROCESS_ACCESS,
     ProcessSummary,
 };
-use crate::nircmd::{
-    ClipboardOp, MuteMode, NirCmdStepResult, NirCommand, PowerAction, RegValueKind, ServiceAction, WinAction,
+use crate::script::{
+    ClipboardOp, MuteMode, PowerAction, RegValueKind, ScriptCommand, ScriptStepResult, ServiceAction, WinAction,
     WinSelector, apply_ini_operation,
 };
 use crate::run::{LaunchProfile, LaunchResult, PriorityClass, RunAsMode, WindowState};
@@ -279,9 +279,9 @@ fn priority_flag(priority: PriorityClass) -> PROCESS_CREATION_FLAGS {
 }
 
 impl CmdBackend for Win32CmdBackend {
-    fn execute_nircmd(&self, cmd: &NirCommand) -> WinctlResult<NirCmdStepResult> {
+    fn execute_script(&self, cmd: &ScriptCommand) -> WinctlResult<ScriptStepResult> {
         match cmd {
-            NirCommand::Speak { text, async_mode } => {
+            ScriptCommand::Speak { text, async_mode } => {
                 let _com = ComApartmentGuard::init(false)?;
                 let voice: ISpVoice = unsafe { CoCreateInstance(&SpVoice, None, CLSCTX_ALL) }
                     .map_err(|e| map_win32_err(e, "CoCreateInstance(SpVoice)"))?;
@@ -292,13 +292,13 @@ impl CmdBackend for Win32CmdBackend {
                 };
                 let wide = HSTRING::from(text.as_str());
                 unsafe { voice.Speak(&wide, flags, None) }.map_err(|e| map_win32_err(e, "ISpVoice::Speak"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "speak".to_string(),
                     applied: true,
                     detail: format!("Spoke {} chars", text.len()),
                 })
             }
-            NirCommand::Clipboard { op, text } => {
+            ScriptCommand::Clipboard { op, text } => {
                 let _clip = ClipboardGuard::open()?;
                 unsafe { EmptyClipboard() }.map_err(|e| map_win32_err(e, "EmptyClipboard"))?;
                 if matches!(op, ClipboardOp::Set) {
@@ -325,13 +325,13 @@ impl CmdBackend for Win32CmdBackend {
                         return Err(map_win32_err(e, "SetClipboardData"));
                     }
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "clipboard".to_string(),
                     applied: true,
                     detail: format!("Clipboard {op:?} completed"),
                 })
             }
-            NirCommand::MuteSysVolume { mode } => {
+            ScriptCommand::MuteSysVolume { mode } => {
                 let _com = ComApartmentGuard::init(true)?;
                 let enumerator: IMMDeviceEnumerator =
                     unsafe { CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL) }
@@ -349,13 +349,13 @@ impl CmdBackend for Win32CmdBackend {
                 };
                 unsafe { endpoint.SetMute(target_mute, std::ptr::null()) }
                     .map_err(|e| map_win32_err(e, "IAudioEndpointVolume::SetMute"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "mutesysvolume".to_string(),
                     applied: true,
                     detail: format!("Set mute={target_mute}"),
                 })
             }
-            NirCommand::SetVolume { device, left, right } => {
+            ScriptCommand::SetVolume { device, left, right } => {
                 if *device != 0 {
                     return Err(WinctlError::InvalidInput(format!(
                         "setvolume device index {device} is not supported in Win32CmdBackend (only default device 0 is supported)"
@@ -373,13 +373,13 @@ impl CmdBackend for Win32CmdBackend {
                 let scalar = avg.clamp(0.0, 1.0);
                 unsafe { endpoint.SetMasterVolumeLevelScalar(scalar, std::ptr::null()) }
                     .map_err(|e| map_win32_err(e, "SetMasterVolumeLevelScalar"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "setvolume".to_string(),
                     applied: true,
                     detail: format!("Set master volume scalar={scalar:.3}"),
                 })
             }
-            NirCommand::Monitor { state } => {
+            ScriptCommand::Monitor { state } => {
                 unsafe {
                     PostMessageW(
                         Some(HWND_BROADCAST),
@@ -389,13 +389,13 @@ impl CmdBackend for Win32CmdBackend {
                     )
                 }
                 .map_err(|e| map_win32_err(e, "PostMessageW(SC_MONITORPOWER)"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "monitor".to_string(),
                     applied: true,
                     detail: format!("Broadcast monitor state {state:?}"),
                 })
             }
-            NirCommand::ScreenSaver => {
+            ScriptCommand::ScreenSaver => {
                 const SC_SCREENSAVE_CMD: usize = 0xF140;
                 unsafe {
                     PostMessageW(
@@ -406,13 +406,13 @@ impl CmdBackend for Win32CmdBackend {
                     )
                 }
                 .map_err(|e| map_win32_err(e, "PostMessageW(SC_SCREENSAVE)"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "screensaver".to_string(),
                     applied: true,
                     detail: "Broadcast SC_SCREENSAVE".to_string(),
                 })
             }
-            NirCommand::Shortcut {
+            ScriptCommand::Shortcut {
                 target,
                 folder,
                 title,
@@ -458,13 +458,13 @@ impl CmdBackend for Win32CmdBackend {
                 let persist: IPersistFile = link.cast().map_err(|e| map_win32_err(e, "IPersistFile cast"))?;
                 let path_h = HSTRING::from(lnk_path.to_string_lossy().as_ref());
                 unsafe { persist.Save(&path_h, true) }.map_err(|e| map_win32_err(e, "IPersistFile::Save"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "shortcut".to_string(),
                     applied: true,
                     detail: format!("Saved shortcut {}", lnk_path.display()),
                 })
             }
-            NirCommand::IniFile {
+            ScriptCommand::IniFile {
                 op,
                 file,
                 section,
@@ -472,13 +472,13 @@ impl CmdBackend for Win32CmdBackend {
                 value,
             } => {
                 apply_ini_operation(*op, file, section, key.as_deref(), value.as_deref())?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "inifile".to_string(),
                     applied: true,
                     detail: format!("Updated INI {}", file.display()),
                 })
             }
-            NirCommand::RegSetVal {
+            ScriptCommand::RegSetVal {
                 reg_type,
                 key,
                 value_name,
@@ -510,13 +510,13 @@ impl CmdBackend for Win32CmdBackend {
                 if set_status != ERROR_SUCCESS {
                     return Err(map_win32_status(set_status.0, "RegSetValueExW"));
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "regsetval".to_string(),
                     applied: true,
                     detail: format!("Wrote {key}\\{value_name}"),
                 })
             }
-            NirCommand::Service { action, name } => {
+            ScriptCommand::Service { action, name } => {
                 let scm = unsafe { OpenSCManagerW(None, None, SC_MANAGER_CONNECT) }
                     .map_err(|e| map_win32_err(e, "OpenSCManagerW"))?;
                 let _scm_guard = OwnedScHandle(scm);
@@ -546,13 +546,13 @@ impl CmdBackend for Win32CmdBackend {
                         unsafe { StartServiceW(svc, None) }.map_err(|e| map_win32_err(e, "StartServiceW"))?;
                     }
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "service".to_string(),
                     applied: true,
                     detail: format!("Service '{name}' {action:?} dispatched"),
                 })
             }
-            NirCommand::Win {
+            ScriptCommand::Win {
                 action,
                 find_by,
                 target,
@@ -681,7 +681,7 @@ impl CmdBackend for Win32CmdBackend {
                         }
                     }
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "win".to_string(),
                     applied: true,
                     detail: format!(
@@ -690,23 +690,23 @@ impl CmdBackend for Win32CmdBackend {
                     ),
                 })
             }
-            NirCommand::Beep { freq_hz, duration_ms } => {
+            ScriptCommand::Beep { freq_hz, duration_ms } => {
                 unsafe { Beep(*freq_hz, *duration_ms) }.map_err(|e| map_win32_err(e, "Beep"))?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "beep".to_string(),
                     applied: true,
                     detail: format!("Beeped {freq_hz}Hz for {duration_ms}ms"),
                 })
             }
-            NirCommand::Wait { ms } => {
+            ScriptCommand::Wait { ms } => {
                 thread::sleep(Duration::from_millis(*ms));
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "wait".to_string(),
                     applied: true,
                     detail: format!("Waited {ms}ms"),
                 })
             }
-            NirCommand::Exec { show_mode, exe, args } => {
+            ScriptCommand::Exec { show_mode, exe, args } => {
                 let profile = LaunchProfile {
                     exe_path: exe.clone(),
                     args: args.clone(),
@@ -714,13 +714,13 @@ impl CmdBackend for Win32CmdBackend {
                     ..LaunchProfile::default()
                 };
                 let res = self.launch_process(&profile)?;
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "exec".to_string(),
                     applied: true,
                     detail: format!("Launched PID {:?}", res.pid),
                 })
             }
-            NirCommand::ShellExec {
+            ScriptCommand::ShellExec {
                 verb,
                 target,
                 params,
@@ -744,13 +744,13 @@ impl CmdBackend for Win32CmdBackend {
                 if code <= 32 {
                     return Err(WinctlError::win32(code as u32, "ShellExecuteW"));
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "shellexec".to_string(),
                     applied: true,
                     detail: format!("ShellExecuteW('{verb}', '{target}') succeeded"),
                 })
             }
-            NirCommand::Power { action } => {
+            ScriptCommand::Power { action } => {
                 match action {
                     PowerAction::LockWorkstation => {
                         unsafe { LockWorkStation() }.map_err(|e| map_win32_err(e, "LockWorkStation"))?
@@ -780,7 +780,7 @@ impl CmdBackend for Win32CmdBackend {
                             .map_err(|e| map_win32_err(e, "ExitWindowsEx(SHUTDOWN)"))?;
                     }
                 }
-                Ok(NirCmdStepResult {
+                Ok(ScriptStepResult {
                     verb: "power".to_string(),
                     applied: true,
                     detail: format!("Executed {action:?}"),
@@ -1343,7 +1343,7 @@ mod tests {
     fn win32_backend_rejects_nonzero_setvolume_device_and_zero_hwnd() {
         let backend = Win32CmdBackend::new();
         assert!(matches!(
-            backend.execute_nircmd(&NirCommand::SetVolume {
+            backend.execute_script(&ScriptCommand::SetVolume {
                 device: 1,
                 left: 1000,
                 right: 1000
@@ -1351,7 +1351,7 @@ mod tests {
             Err(WinctlError::InvalidInput(_))
         ));
         assert!(matches!(
-            backend.execute_nircmd(&NirCommand::Win {
+            backend.execute_script(&ScriptCommand::Win {
                 action: WinAction::Show,
                 find_by: WinSelector::Handle,
                 target: "0".to_string(),

@@ -2,11 +2,11 @@ use winctl2rust_core::{WinctlError, WinctlResult};
 
 use crate::atnow::{AtNowScheduleResult, AtNowTaskInfo, AtNowTaskRequest};
 use crate::from_proc::{FromProcessRequest, FromProcessResult, ProcessSummary};
-use crate::nircmd::{NirCmdStepResult, NirCommand};
 use crate::run::{LaunchProfile, LaunchResult};
+use crate::script::{ScriptCommand, ScriptStepResult};
 
 pub trait CmdBackend: Send + Sync {
-    fn execute_nircmd(&self, cmd: &NirCommand) -> WinctlResult<NirCmdStepResult>;
+    fn execute_script(&self, cmd: &ScriptCommand) -> WinctlResult<ScriptStepResult>;
     fn launch_process(&self, profile: &LaunchProfile) -> WinctlResult<LaunchResult>;
     fn list_candidate_processes(&self) -> WinctlResult<Vec<ProcessSummary>>;
     fn spawn_from_parent(&self, req: &FromProcessRequest) -> WinctlResult<FromProcessResult>;
@@ -18,16 +18,16 @@ pub trait CmdBackend: Send + Sync {
 pub struct UnsupportedCmdBackend;
 
 impl CmdBackend for UnsupportedCmdBackend {
-    fn execute_nircmd(&self, cmd: &NirCommand) -> WinctlResult<NirCmdStepResult> {
+    fn execute_script(&self, cmd: &ScriptCommand) -> WinctlResult<ScriptStepResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "NirCmd execution ('{}') requires Windows Win32/COM APIs",
+            "Command script execution ('{}') requires Windows Win32/COM APIs",
             cmd.verb_name()
         )))
     }
 
     fn launch_process(&self, profile: &LaunchProfile) -> WinctlResult<LaunchResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "AdvancedRun launch ('{}') requires Windows CreateProcessW/ShellExecuteExW",
+            "Process launch ('{}') requires Windows CreateProcessW/ShellExecuteExW",
             profile.exe_path
         )))
     }
@@ -40,7 +40,7 @@ impl CmdBackend for UnsupportedCmdBackend {
 
     fn spawn_from_parent(&self, req: &FromProcessRequest) -> WinctlResult<FromProcessResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "RunFromProcess (parent PID {}) requires Windows PROC_THREAD_ATTRIBUTE_PARENT_PROCESS",
+            "Parent-attributed launch (parent PID {}) requires Windows PROC_THREAD_ATTRIBUTE_PARENT_PROCESS",
             req.parent_pid
         )))
     }
@@ -53,7 +53,7 @@ impl CmdBackend for UnsupportedCmdBackend {
 
     fn schedule_task(&self, req: &AtNowTaskRequest) -> WinctlResult<AtNowScheduleResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "AtNow task scheduling ('{}') requires Windows Task Scheduler v2 COM APIs",
+            "Task scheduling ('{}') requires Windows Task Scheduler v2 COM APIs",
             req.task_name
         )))
     }
@@ -64,7 +64,7 @@ impl CmdBackend for UnsupportedCmdBackend {
 pub struct MockCmdBackend {
     pub processes: std::sync::Mutex<Vec<ProcessSummary>>,
     pub tasks: std::sync::Mutex<Vec<AtNowTaskInfo>>,
-    pub executed_nircmds: std::sync::Mutex<Vec<String>>,
+    pub executed_scripts: std::sync::Mutex<Vec<String>>,
     pub launched_profiles: std::sync::Mutex<Vec<String>>,
     pub spawned_from_proc: std::sync::Mutex<Vec<(u32, String)>>,
     pub scheduled_requests: std::sync::Mutex<Vec<String>>,
@@ -108,9 +108,9 @@ impl MockCmdBackend {
 
 #[cfg(any(test, feature = "test-support"))]
 impl CmdBackend for MockCmdBackend {
-    fn execute_nircmd(&self, cmd: &NirCommand) -> WinctlResult<NirCmdStepResult> {
-        self.executed_nircmds.lock().unwrap().push(cmd.verb_name().to_string());
-        Ok(NirCmdStepResult {
+    fn execute_script(&self, cmd: &ScriptCommand) -> WinctlResult<ScriptStepResult> {
+        self.executed_scripts.lock().unwrap().push(cmd.verb_name().to_string());
+        Ok(ScriptStepResult {
             verb: cmd.verb_name().to_string(),
             applied: true,
             detail: format!("mock executed {}", cmd.verb_name()),

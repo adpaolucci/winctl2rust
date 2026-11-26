@@ -240,7 +240,7 @@ pub fn encode_ppm_p6(frame: &RawVideoFrame) -> WinctlResult<Vec<u8>> {
 pub fn webcam_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_webcam",
-        "WebCamImageSave Media Foundation Video Sources",
+        "Media Foundation Video Sources",
         vec![
             ColumnDef::new("device_index", "Index", ColumnType::Uint).with_width_hint(70),
             ColumnDef::new("friendly_name", "Device Name", ColumnType::Text).with_width_hint(200),
@@ -283,7 +283,7 @@ impl TableProvider for WebcamTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Enumerate Media Foundation video capture devices and native frame capabilities (WebCamImageSave)"
+        "Enumerate Media Foundation video capture devices and native frame capabilities"
     }
 
     fn schema(&self) -> TableSchema {
@@ -333,7 +333,7 @@ impl ActionCommand for WebcamCaptureAction {
     }
 
     fn description(&self) -> &'static str {
-        "Capture a still frame from a Media Foundation webcam and save as 24-bit BMP or P6 PPM (WebCamImageSave)"
+        "Capture a still frame from a Media Foundation webcam and save as 24-bit BMP or P6 PPM"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -382,7 +382,7 @@ impl ActionCommand for WebcamCaptureAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview WebCamImageSave capture without opening IMFSourceReader or writing output file",
+                "Preview webcam capture without opening IMFSourceReader or writing output file",
                 json!({
                     "device_index": device_index,
                     "output_path": output_path,

@@ -9,8 +9,8 @@ use tempfile::tempdir;
 use winctl2rust_cmd::atnow::{AtNowAction, AtNowScheduleResult, AtNowTaskInfo, AtNowTaskRequest, ScheduleTimeSpec};
 use winctl2rust_cmd::backend::{CmdBackend, UnsupportedCmdBackend};
 use winctl2rust_cmd::from_proc::{FromProcessRequest, FromProcessResult, ProcessSummary};
-use winctl2rust_cmd::nircmd::{
-    IniOp, NirCmdStepResult, NirCmdVars, NirCommand, WinSelector, apply_ini_operation, expand_vars, parse_script,
+use winctl2rust_cmd::script::{
+    IniOp, ScriptCommand, ScriptStepResult, ScriptVars, WinSelector, apply_ini_operation, expand_vars, parse_script,
     tokenize_line,
 };
 use winctl2rust_cmd::run::{
@@ -26,9 +26,9 @@ struct IntegrationBackend {
 }
 
 impl CmdBackend for IntegrationBackend {
-    fn execute_nircmd(&self, cmd: &NirCommand) -> WinctlResult<NirCmdStepResult> {
-        self.calls.lock().unwrap().push(format!("nircmd:{}", cmd.verb_name()));
-        Ok(NirCmdStepResult {
+    fn execute_script(&self, cmd: &ScriptCommand) -> WinctlResult<ScriptStepResult> {
+        self.calls.lock().unwrap().push(format!("script:{}", cmd.verb_name()));
+        Ok(ScriptStepResult {
             verb: cmd.verb_name().to_string(),
             applied: true,
             detail: "ok".to_string(),
@@ -93,8 +93,8 @@ impl CmdBackend for IntegrationBackend {
 }
 
 #[test]
-fn nircmd_dsl_parses_all_verbs_comments_quotes_and_vars() {
-    let mut vars = NirCmdVars::new();
+fn script_dsl_parses_all_verbs_comments_quotes_and_vars() {
+    let mut vars = ScriptVars::new();
     vars.insert("greeting".to_string(), "Hello \"GUAP\"".to_string());
     vars.insert("app".to_string(), "notepad.exe".to_string());
 
@@ -131,15 +131,15 @@ fn nircmd_dsl_parses_all_verbs_comments_quotes_and_vars() {
 
     let parsed = parse_script(script, &vars).unwrap();
     assert_eq!(parsed.len(), 19);
-    assert!(matches!(parsed[0].command, NirCommand::Speak { async_mode: true, .. }));
-    assert!(matches!(parsed[1].command, NirCommand::Clipboard { .. }));
-    assert!(matches!(parsed[15].command, NirCommand::Exec { ref exe, .. } if exe == "notepad.exe"));
-    assert!(matches!(parsed[18].command, NirCommand::Power { .. }));
+    assert!(matches!(parsed[0].command, ScriptCommand::Speak { async_mode: true, .. }));
+    assert!(matches!(parsed[1].command, ScriptCommand::Clipboard { .. }));
+    assert!(matches!(parsed[15].command, ScriptCommand::Exec { ref exe, .. } if exe == "notepad.exe"));
+    assert!(matches!(parsed[18].command, ScriptCommand::Power { .. }));
 }
 
 #[test]
-fn nircmd_rejects_bad_syntax_and_r4_prohibitions() {
-    let vars = NirCmdVars::new();
+fn script_rejects_bad_syntax_and_r4_prohibitions() {
+    let vars = ScriptVars::new();
     assert!(matches!(
         parse_script("speak \"unclosed", &vars),
         Err(WinctlError::ParseError(_))
@@ -159,7 +159,7 @@ fn nircmd_rejects_bad_syntax_and_r4_prohibitions() {
 }
 
 #[test]
-fn nircmd_ini_file_editor_roundtrips_cleanly() {
+fn script_ini_file_editor_roundtrips_cleanly() {
     let dir = tempdir().unwrap();
     let ini_path = dir.path().join("sub").join("app.ini");
 
@@ -177,9 +177,9 @@ fn nircmd_ini_file_editor_roundtrips_cleanly() {
 }
 
 #[test]
-fn advanced_run_profile_parsing_validation_quoting_and_env_block() {
+fn launch_profile_parsing_validation_quoting_and_env_block() {
     let ini = r#"
-        [AdvancedRun]
+        [LaunchProfile]
         Name=TestProfile
         ExePath=C:\Program Files\Demo\app.exe
         Args=--flag "with space" C:\Dir\
@@ -305,7 +305,7 @@ fn atnow_schedule_time_spec_parses_all_formats() {
 fn unsupported_backend_reports_graceful_platform_errors() {
     let b = UnsupportedCmdBackend;
     assert!(matches!(
-        b.execute_nircmd(&NirCommand::ScreenSaver),
+        b.execute_script(&ScriptCommand::ScreenSaver),
         Err(WinctlError::UnsupportedOnPlatform(_))
     ));
     assert!(matches!(
@@ -327,7 +327,7 @@ fn integration_mcp_policy_gates_with_custom_backend() {
     cmd_bundle.register_into(&mut registry);
 
     let err = registry
-        .dispatch("cmd_nircmd", &json!({ "script": "beep 440 100", "dry_run": true }))
+        .dispatch("cmd_script", &json!({ "script": "beep 440 100", "dry_run": true }))
         .unwrap_err();
     assert_eq!(err.code, JsonRpcError::POLICY_DENIED);
 
@@ -353,8 +353,8 @@ fn integration_mcp_policy_gates_with_custom_backend() {
 }
 
 #[test]
-fn nircmd_exec_preserves_quoted_argument_boundaries() {
-    let vars = NirCmdVars::new();
+fn script_exec_preserves_quoted_argument_boundaries() {
+    let vars = ScriptVars::new();
     let parsed = parse_script(
         r#"exec show notepad.exe "C:\My Docs\notes.txt" "/msg=\"hi there\"""#,
         &vars,
@@ -362,24 +362,24 @@ fn nircmd_exec_preserves_quoted_argument_boundaries() {
     .unwrap();
     assert_eq!(parsed.len(), 1);
     match &parsed[0].command {
-        NirCommand::Exec { show_mode, exe, args } => {
+        ScriptCommand::Exec { show_mode, exe, args } => {
             assert_eq!(*show_mode, WindowState::Normal);
             assert_eq!(exe, "notepad.exe");
             assert_eq!(args, &vec![r"C:\My Docs\notes.txt", r#"/msg="hi there""#]);
         }
-        other => panic!("expected NirCommand::Exec, got {other:?}"),
+        other => panic!("expected ScriptCommand::Exec, got {other:?}"),
     }
 
     let parsed_empty = parse_script("execmd min calc.exe", &vars).unwrap();
     match &parsed_empty[0].command {
-        NirCommand::Exec { args, .. } => assert!(args.is_empty()),
-        other => panic!("expected NirCommand::Exec, got {other:?}"),
+        ScriptCommand::Exec { args, .. } => assert!(args.is_empty()),
+        other => panic!("expected ScriptCommand::Exec, got {other:?}"),
     }
 }
 
 #[test]
-fn nircmd_parser_validates_beep_regsetval_shortcut_win_and_preserves_ini_comments() {
-    let vars = NirCmdVars::new();
+fn script_parser_validates_beep_regsetval_shortcut_win_and_preserves_ini_comments() {
+    let vars = ScriptVars::new();
 
     // Beep frequency bounds (37..=32767 Hz)
     assert!(parse_script("beep 0 100", &vars).is_err());
@@ -418,14 +418,14 @@ fn nircmd_parser_validates_beep_regsetval_shortcut_win_and_preserves_ini_comment
     let win_cmds = parse_script("win min active\nwin normal alltop", &vars).unwrap();
     assert!(matches!(
         win_cmds[0].command,
-        NirCommand::Win {
+        ScriptCommand::Win {
             find_by: WinSelector::Active,
             ..
         }
     ));
     assert!(matches!(
         win_cmds[1].command,
-        NirCommand::Win {
+        ScriptCommand::Win {
             find_by: WinSelector::AllTop,
             ..
         }
@@ -457,7 +457,7 @@ fn nircmd_parser_validates_beep_regsetval_shortcut_win_and_preserves_ini_comment
 }
 
 #[test]
-fn advanced_run_env_block_dedups_sorts_merges_compat_and_preserves_unc_ini_args() {
+fn launch_profile_env_block_dedups_sorts_merges_compat_and_preserves_unc_ini_args() {
     // 1. Case-insensitive deduplication & Windows CreateProcessW sort order (windir < __COMPAT_LAYER)
     let mut overrides = std::collections::BTreeMap::new();
     overrides.insert("path".to_string(), "C:\\custom".to_string());

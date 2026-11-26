@@ -434,7 +434,7 @@ impl ClipboardArchive {
 pub fn clip_hist_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_clip_hist",
-        "Clipboardic Local Clipboard Archive",
+        "Local Clipboard Archive",
         vec![
             ColumnDef::new("entry_id", "Entry ID", ColumnType::Uint).with_width_hint(80),
             ColumnDef::new("captured_at", "Captured At", ColumnType::Timestamp).with_width_hint(180),
@@ -509,7 +509,7 @@ impl TableProvider for ClipHistTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Browse local SQLite clipboard history archive (Clipboardic)"
+        "Browse local SQLite clipboard history archive"
     }
 
     fn schema(&self) -> TableSchema {
@@ -590,7 +590,7 @@ impl ActionCommand for ClipHistControlAction {
     }
 
     fn description(&self) -> &'static str {
-        "Capture, restore, delete, clear, or export/import local SQLite/JSON clipboard history (Clipboardic)"
+        "Capture, restore, delete, clear, or export/import local SQLite/JSON clipboard history"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -664,7 +664,7 @@ impl ActionCommand for ClipHistControlAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview Clipboardic SQLite/JSON archive or clipboard restore operation",
+                "Preview SQLite/JSON archive or clipboard restore operation",
                 json!({
                     "operation": op_norm,
                     "db_path": db_path,

@@ -12,8 +12,8 @@ use winctl2rust_report::{
 
 fn sample_table() -> TableData {
     let schema = TableSchema::new(
-        "cmd_nircmd_preview",
-        "NirCmd Script Preview",
+        "cmd_script_preview",
+        "Command Script Preview",
         vec![
             ColumnDef::new("line", "Line", ColumnType::Uint),
             ColumnDef::new("verb", "Verb", ColumnType::Text),
@@ -143,7 +143,7 @@ fn audit_jsonl_appends_multiple_records() {
     let audit_path = dir.path().join("logs").join("audit.jsonl");
 
     let rec1 = record_action_audit(
-        "cmd_nircmd",
+        "cmd_script",
         ActionRiskLevel::Mutating,
         true,
         true,
@@ -168,7 +168,7 @@ fn audit_jsonl_appends_multiple_records() {
 
     let decoded_1: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
     let decoded_2: serde_json::Value = serde_json::from_str(lines[1]).unwrap();
-    assert_eq!(decoded_1["command_id"], "cmd_nircmd");
+    assert_eq!(decoded_1["command_id"], "cmd_script");
     assert_eq!(decoded_1["dry_run"], true);
     assert_eq!(decoded_1["payload_sha256"].as_str().unwrap().len(), 64);
     assert_eq!(decoded_2["command_id"], "cmd_from_proc");

@@ -556,13 +556,13 @@ impl TableProvider for AppAudioConfigTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Inspect per-application Windows PolicyConfig\\PropertyStore audio settings (AppAudioConfig)"
+        "Inspect per-application Windows PolicyConfig\\PropertyStore audio settings"
     }
 
     fn schema(&self) -> TableSchema {
         TableSchema::new(
             "audio_app_config",
-            "AppAudioConfig PropertyStore Entries",
+            "Per-App PropertyStore Audio Entries",
             vec![
                 ColumnDef::new("subkey", "Subkey", ColumnType::Text).with_width_hint(140),
                 ColumnDef::new("app_path", "Application Path", ColumnType::Text).with_width_hint(280),

@@ -151,7 +151,7 @@ pub enum TreeControlOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SysExportItem {
+pub struct CtrlExportItem {
     pub source_hwnd: u64,
     pub control_class: String,
     pub process_name: String,
@@ -287,7 +287,7 @@ pub trait DesktopBackend: Send + Sync {
     fn list_window_tree(&self) -> WinctlResult<Vec<TreeWindowNode>>;
     fn control_tree_window(&self, hwnd: u64, op: &TreeControlOp) -> WinctlResult<WindowControlResult>;
 
-    fn export_sys_controls(&self) -> WinctlResult<Vec<SysExportItem>>;
+    fn export_sys_controls(&self) -> WinctlResult<Vec<CtrlExportItem>>;
 
     fn inspect_clipboard(&self) -> WinctlResult<Vec<ClipboardFormatEntry>>;
     fn clear_clipboard(&self) -> WinctlResult<ClipboardControlResult>;
@@ -316,61 +316,61 @@ pub struct UnsupportedDesktopBackend;
 impl DesktopBackend for UnsupportedDesktopBackend {
     fn list_window_props(&self) -> WinctlResult<Vec<WindowPropInfo>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "GUIPropView EnumWindows requires Windows".to_string(),
+            "Window property EnumWindows requires Windows".to_string(),
         ))
     }
 
     fn control_window_prop(&self, hwnd: u64, op: &WindowPropOp) -> WinctlResult<WindowControlResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "GUIPropView control ({op:?} on {hwnd:#x}) requires Windows"
+            "Window property control ({op:?} on {hwnd:#x}) requires Windows"
         )))
     }
 
     fn list_top_windows(&self) -> WinctlResult<Vec<TopWindowInfo>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "WinLister EnumWindows requires Windows".to_string(),
+            "Top-level EnumWindows requires Windows".to_string(),
         ))
     }
 
     fn control_top_window(&self, hwnd: u64, op: &WindowListerOp) -> WinctlResult<WindowControlResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "WinLister control ({op:?} on {hwnd:#x}) requires Windows"
+            "Top-level window control ({op:?} on {hwnd:#x}) requires Windows"
         )))
     }
 
     fn list_window_tree(&self) -> WinctlResult<Vec<TreeWindowNode>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "WinExplorer EnumChildWindows requires Windows".to_string(),
+            "Window tree EnumChildWindows requires Windows".to_string(),
         ))
     }
 
     fn control_tree_window(&self, hwnd: u64, op: &TreeControlOp) -> WinctlResult<WindowControlResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "WinExplorer control ({op:?} on {hwnd:#x}) requires Windows"
+            "Window tree control ({op:?} on {hwnd:#x}) requires Windows"
         )))
     }
 
-    fn export_sys_controls(&self) -> WinctlResult<Vec<SysExportItem>> {
+    fn export_sys_controls(&self) -> WinctlResult<Vec<CtrlExportItem>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "SysExporter cross-process LVM_GETITEMW/TVM_GETITEMW requires Windows".to_string(),
+            "Cross-process LVM_GETITEMW/TVM_GETITEMW control export requires Windows".to_string(),
         ))
     }
 
     fn inspect_clipboard(&self) -> WinctlResult<Vec<ClipboardFormatEntry>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "InsideClipboard OpenClipboard/EnumClipboardFormats requires Windows".to_string(),
+            "OpenClipboard/EnumClipboardFormats requires Windows".to_string(),
         ))
     }
 
     fn clear_clipboard(&self) -> WinctlResult<ClipboardControlResult> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "InsideClipboard EmptyClipboard requires Windows".to_string(),
+            "EmptyClipboard requires Windows".to_string(),
         ))
     }
 
     fn set_clipboard_text(&self, _text: &str) -> WinctlResult<ClipboardControlResult> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "InsideClipboard SetClipboardData requires Windows".to_string(),
+            "SetClipboardData requires Windows".to_string(),
         ))
     }
 
@@ -382,43 +382,43 @@ impl DesktopBackend for UnsupportedDesktopBackend {
 
     fn monitor_clipboard_update(&self, _timeout_ms: u32) -> WinctlResult<Option<ClipboardFormatEntry>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "Clipboardic AddClipboardFormatListener requires Windows".to_string(),
+            "AddClipboardFormatListener requires Windows".to_string(),
         ))
     }
 
     fn probe_hotkeys(&self) -> WinctlResult<Vec<HotkeyEntry>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "HotKeysList RegisterHotKey probe requires Windows".to_string(),
+            "RegisterHotKey probe requires Windows".to_string(),
         ))
     }
 
     fn probe_single_hotkey(&self, _modifiers: u32, _vk_code: u32) -> WinctlResult<HotkeyProbeResult> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "HotKeysList RegisterHotKey probe requires Windows".to_string(),
+            "RegisterHotKey probe requires Windows".to_string(),
         ))
     }
 
     fn query_keyboard_state(&self) -> WinctlResult<Vec<KeyStateEntry>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "KeyboardStateView GetKeyboardState requires Windows".to_string(),
+            "GetKeyboardState requires Windows".to_string(),
         ))
     }
 
     fn list_installed_fonts(&self) -> WinctlResult<Vec<InstalledFontEntry>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "WinFontsView EnumFontFamiliesExW requires Windows".to_string(),
+            "EnumFontFamiliesExW requires Windows".to_string(),
         ))
     }
 
     fn list_webcam_devices(&self) -> WinctlResult<Vec<WebcamDeviceInfo>> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "WebCamImageSave Media Foundation MFEnumDeviceSources requires Windows".to_string(),
+            "Media Foundation MFEnumDeviceSources requires Windows".to_string(),
         ))
     }
 
     fn capture_webcam_frame(&self, _device_index: u32) -> WinctlResult<RawVideoFrame> {
         Err(WinctlError::UnsupportedOnPlatform(
-            "WebCamImageSave Media Foundation IMFSourceReader requires Windows".to_string(),
+            "Media Foundation IMFSourceReader requires Windows".to_string(),
         ))
     }
 }
@@ -429,7 +429,7 @@ pub struct MockDesktopBackend {
     pub window_props: std::sync::Mutex<Vec<WindowPropInfo>>,
     pub top_windows: std::sync::Mutex<Vec<TopWindowInfo>>,
     pub tree_nodes: std::sync::Mutex<Vec<TreeWindowNode>>,
-    pub sysexport_items: std::sync::Mutex<Vec<SysExportItem>>,
+    pub ctrl_export_items: std::sync::Mutex<Vec<CtrlExportItem>>,
     pub clipboard_entries: std::sync::Mutex<Vec<ClipboardFormatEntry>>,
     pub hotkeys: std::sync::Mutex<Vec<HotkeyEntry>>,
     pub key_states: std::sync::Mutex<Vec<KeyStateEntry>>,
@@ -449,7 +449,7 @@ impl MockDesktopBackend {
             window_props: std::sync::Mutex::new(crate::fixtures::sample_window_props()),
             top_windows: std::sync::Mutex::new(crate::fixtures::sample_top_windows()),
             tree_nodes: std::sync::Mutex::new(crate::fixtures::sample_tree_nodes()),
-            sysexport_items: std::sync::Mutex::new(crate::fixtures::sample_sysexport_items()),
+            ctrl_export_items: std::sync::Mutex::new(crate::fixtures::sample_ctrl_export_items()),
             clipboard_entries: std::sync::Mutex::new(crate::fixtures::sample_clipboard_entries()),
             hotkeys: std::sync::Mutex::new(crate::fixtures::sample_hotkeys()),
             key_states: std::sync::Mutex::new(crate::fixtures::sample_key_states()),
@@ -673,9 +673,9 @@ impl DesktopBackend for MockDesktopBackend {
         })
     }
 
-    fn export_sys_controls(&self) -> WinctlResult<Vec<SysExportItem>> {
+    fn export_sys_controls(&self) -> WinctlResult<Vec<CtrlExportItem>> {
         self.check_faults()?;
-        Ok(self.sysexport_items.lock().unwrap().clone())
+        Ok(self.ctrl_export_items.lock().unwrap().clone())
     }
 
     fn inspect_clipboard(&self) -> WinctlResult<Vec<ClipboardFormatEntry>> {

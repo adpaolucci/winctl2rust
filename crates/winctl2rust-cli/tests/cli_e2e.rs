@@ -83,7 +83,7 @@ fn cli_parses_all_subcommand_groups_and_global_flags() {
     assert_eq!(c1.limit, Some(5));
     assert!(matches!(c1.command, Commands::Display { .. }));
 
-    let c2 = Cli::try_parse_from(["winctl2rust", "audio", "svcl", "/SetVolume", "Speakers", "50"]).unwrap();
+    let c2 = Cli::try_parse_from(["winctl2rust", "audio", "ctl", "/SetVolume", "Speakers", "50"]).unwrap();
     assert!(matches!(c2.command, Commands::Audio { .. }));
 
     let c3 = Cli::try_parse_from([
@@ -111,7 +111,7 @@ fn cli_policy_gates_dry_run_and_mock_mutations_work() {
     let (bundle, handles) = make_mock_bundle();
     let dir = tempdir().unwrap();
     let audit_path = dir.path().join("audit.jsonl");
-    let out_json = dir.path().join("nircmd_out.json");
+    let out_json = dir.path().join("script_out.json");
 
     // 1. Mutating without --allow-mutating --confirm-destructive -> PolicyDenied error
     let denied = Cli::try_parse_from([
@@ -119,19 +119,19 @@ fn cli_policy_gates_dry_run_and_mock_mutations_work() {
         "--custody",
         audit_path.to_str().unwrap(),
         "cmd",
-        "nircmd",
+        "script",
         "--script",
         "beep 440 100",
     ])
     .unwrap();
     let err = run_cli_with_bundle(&denied, &bundle).unwrap_err();
     assert!(err.to_string().contains("policy denied"), "unexpected error: {err}");
-    assert!(handles.cmd.executed_nircmds.lock().unwrap().is_empty());
+    assert!(handles.cmd.executed_scripts.lock().unwrap().is_empty());
     assert!(audit_path.exists());
 
     // 2. --allow-mutating WITHOUT --confirm-destructive -> still denied
     let half_allowed =
-        Cli::try_parse_from(["winctl2rust", "--allow-mutating", "audio", "svcl", "/Mute", "vlc.exe"]).unwrap();
+        Cli::try_parse_from(["winctl2rust", "--allow-mutating", "audio", "ctl", "/Mute", "vlc.exe"]).unwrap();
     let err2 = run_cli_with_bundle(&half_allowed, &bundle).unwrap_err();
     assert!(err2.to_string().contains("confirm_destructive"));
 
@@ -142,7 +142,7 @@ fn cli_policy_gates_dry_run_and_mock_mutations_work() {
         "--output",
         out_json.to_str().unwrap(),
         "cmd",
-        "nircmd",
+        "script",
         "--script",
         "beep 440 100",
     ])
@@ -151,24 +151,24 @@ fn cli_policy_gates_dry_run_and_mock_mutations_work() {
     let dry_val: Value = serde_json::from_str(&fs::read_to_string(&out_json).unwrap()).unwrap();
     assert_eq!(dry_val["dry_run"], json!(true));
     assert_eq!(dry_val["applied"], json!(false));
-    assert!(handles.cmd.executed_nircmds.lock().unwrap().is_empty());
+    assert!(handles.cmd.executed_scripts.lock().unwrap().is_empty());
 
-    // 4. Read-only svcl (/GetPercent) succeeds without --allow-mutating
-    let ro_svcl_out = dir.path().join("svcl_get.json");
-    let ro_svcl = Cli::try_parse_from([
+    // 4. Read-only audio ctl (/GetPercent) succeeds without --allow-mutating
+    let ro_ctl_out = dir.path().join("ctl_get.json");
+    let ro_ctl = Cli::try_parse_from([
         "winctl2rust",
         "--output",
-        ro_svcl_out.to_str().unwrap(),
+        ro_ctl_out.to_str().unwrap(),
         "audio",
-        "svcl",
+        "ctl",
         "/GetPercent",
         "DefaultRenderDevice",
     ])
     .unwrap();
-    run_cli_with_bundle(&ro_svcl, &bundle).unwrap();
-    let svcl_val: Value = serde_json::from_str(&fs::read_to_string(&ro_svcl_out).unwrap()).unwrap();
-    assert_eq!(svcl_val["applied"], json!(false));
-    assert_eq!(svcl_val["result"]["exit_code"], json!(650));
+    run_cli_with_bundle(&ro_ctl, &bundle).unwrap();
+    let ctl_val: Value = serde_json::from_str(&fs::read_to_string(&ro_ctl_out).unwrap()).unwrap();
+    assert_eq!(ctl_val["applied"], json!(false));
+    assert_eq!(ctl_val["result"]["exit_code"], json!(650));
 
     // 5. Real mock mutation succeeds with --allow-mutating --confirm-destructive
     let mut_cmd = Cli::try_parse_from([
@@ -180,13 +180,13 @@ fn cli_policy_gates_dry_run_and_mock_mutations_work() {
         "--output",
         out_json.to_str().unwrap(),
         "cmd",
-        "nircmd",
+        "script",
         "--script",
         "beep 440 100",
     ])
     .unwrap();
     run_cli_with_bundle(&mut_cmd, &bundle).unwrap();
-    assert_eq!(handles.cmd.executed_nircmds.lock().unwrap().len(), 1);
+    assert_eq!(handles.cmd.executed_scripts.lock().unwrap().len(), 1);
 
     // 6. Desktop clip_hist + clipboard + audio + display mutations against mock backends
     let clip_out = dir.path().join("clip.json");
@@ -384,9 +384,9 @@ fn real_winctl2rust_binary_e2e_help_dry_run_policy_and_mcp_stdio() {
     assert!(help_out.contains("winctl2rust"));
     assert!(help_out.contains("catalog"));
 
-    // 2. cmd nircmd --dry-run -> Exit 0
+    // 2. cmd script --dry-run -> Exit 0
     let dry = Command::new(bin)
-        .args(["cmd", "nircmd", "--script", "beep 440 100", "--dry-run"])
+        .args(["cmd", "script", "--script", "beep 440 100", "--dry-run"])
         .output()
         .unwrap();
     assert!(
@@ -398,9 +398,9 @@ fn real_winctl2rust_binary_e2e_help_dry_run_policy_and_mcp_stdio() {
     assert_eq!(dry_json["dry_run"], json!(true));
     assert_eq!(dry_json["applied"], json!(false));
 
-    // 3. cmd nircmd without --allow-mutating -> non-zero policy refusal
+    // 3. cmd script without --allow-mutating -> non-zero policy refusal
     let denied = Command::new(bin)
-        .args(["cmd", "nircmd", "--script", "beep 440 100"])
+        .args(["cmd", "script", "--script", "beep 440 100"])
         .output()
         .unwrap();
     assert!(!denied.status.success());
@@ -436,14 +436,14 @@ fn real_winctl2rust_binary_e2e_help_dry_run_policy_and_mcp_stdio() {
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
-            "params": { "name": "cmd_nircmd_parse", "arguments": { "script": "beep 440 100" } }
+            "params": { "name": "cmd_script_parse", "arguments": { "script": "beep 440 100" } }
         })
         .to_string(),
         json!({
             "jsonrpc": "2.0",
             "id": 4,
             "method": "tools/call",
-            "params": { "name": "cmd_nircmd", "arguments": { "script": "beep 440 100" } }
+            "params": { "name": "cmd_script", "arguments": { "script": "beep 440 100" } }
         })
         .to_string(),
     ]

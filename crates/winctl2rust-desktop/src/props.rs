@@ -13,7 +13,7 @@ use crate::backend::{DesktopBackend, WindowPropInfo, WindowPropOp, format_hwnd, 
 pub fn props_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_props",
-        "GUIPropView Window Properties",
+        "Window Properties",
         vec![
             ColumnDef::new("hwnd", "HWND", ColumnType::Hex).with_width_hint(110),
             ColumnDef::new("title", "Title", ColumnType::Text).with_width_hint(220),
@@ -70,7 +70,7 @@ impl TableProvider for PropsTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Inspect top-level and child window properties, styles, bounds, and owning process (GUIPropView)"
+        "Inspect top-level and child window properties, styles, bounds, and owning process"
     }
 
     fn schema(&self) -> TableSchema {
@@ -119,7 +119,7 @@ impl ActionCommand for PropsControlAction {
     }
 
     fn description(&self) -> &'static str {
-        "Control window visibility, enabled state, topmost z-order, opacity, or close via Win32 APIs (GUIPropView)"
+        "Control window visibility, enabled state, topmost z-order, opacity, or close via Win32 APIs"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -185,7 +185,7 @@ impl ActionCommand for PropsControlAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview GUIPropView window property change without modifying live HWND state",
+                "Preview window property change without modifying live HWND state",
                 json!({
                     "hwnd": format_hwnd(hwnd),
                     "operation": op_norm,

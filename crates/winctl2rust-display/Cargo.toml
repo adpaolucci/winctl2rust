@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "MultiMonitorTool CCD topology, ControlMyMonitor DDC/CI VCP & MCCS 2.2a, MonitorInfoView, and DumpEDID VESA EDID 1.3/1.4 + CEA-861 parser for winctl2rust"
+description = "Multi-monitor CCD topology, DDC/CI VCP & MCCS 2.2a, display target metadata, and VESA EDID 1.3/1.4 + CEA-861 parser for winctl2rust"
 
 [features]
 default = []

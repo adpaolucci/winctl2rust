@@ -90,13 +90,13 @@ impl TableProvider for FromProcessTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Enumerate candidate parent processes for RunFromProcess via ToolHelp32"
+        "Enumerate candidate parent processes for parent-attributed launch via ToolHelp32"
     }
 
     fn schema(&self) -> TableSchema {
         TableSchema::new(
             "cmd_from_proc_candidates",
-            "RunFromProcess Candidate Parent Processes",
+            "Candidate Parent Processes",
             vec![
                 ColumnDef::new("pid", "PID", ColumnType::Uint).with_width_hint(80),
                 ColumnDef::new("ppid", "Parent PID", ColumnType::Uint).with_width_hint(90),
@@ -180,7 +180,7 @@ impl ActionCommand for FromProcessAction {
 
     fn execute(&self, args: &Value, dry_run: bool) -> Result<Value, McpToolError> {
         let req: FromProcessRequest = serde_json::from_value(args.clone())
-            .map_err(|e| McpToolError::InvalidParams(format!("invalid RunFromProcess request: {e}")))?;
+            .map_err(|e| McpToolError::InvalidParams(format!("invalid cmd_from_proc request: {e}")))?;
         req.validate().map_err(McpToolError::from)?;
 
         if dry_run {

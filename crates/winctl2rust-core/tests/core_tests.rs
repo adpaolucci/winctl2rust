@@ -44,7 +44,7 @@ fn catalog_has_22_unique_non_hooking_tools() {
     let mut counts = [0usize; 4];
     for tool in catalog {
         assert!(ids.insert(tool.tool_id), "duplicate tool_id {}", tool.tool_id);
-        let lower_name = tool.nirsoft_name.to_ascii_lowercase();
+        let lower_name = tool.display_name.to_ascii_lowercase();
         assert!(!lower_name.contains("runasdate"));
         assert!(!lower_name.contains("cred"));
         match tool.category {

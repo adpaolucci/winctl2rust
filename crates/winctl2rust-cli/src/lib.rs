@@ -9,10 +9,10 @@ use anyhow::{Context, Result, anyhow, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use guap_export::{ExportFormat, build_custody_manifest, sha256_hex, sha512_hex};
 use guap_mcp::{ActionRiskLevel, PolicyMode};
-use guap_table::{GetNirQuery, TableData, TableProvider, apply_query};
+use guap_table::{GuapQuery, TableData, TableProvider, apply_query};
 use serde_json::{Value, json};
-use winctl2rust_audio::backend::{PointerWheelEvent, VolumouseRule};
-use winctl2rust_audio::svcl::{parse_svcl_command, parse_svcl_tokens};
+use winctl2rust_audio::backend::{PointerWheelEvent, WheelRule};
+use winctl2rust_audio::ctl::{parse_ctl_command, parse_ctl_tokens};
 use winctl2rust_core::{
     ExecutionOptions, ToolBundle, ToolCategory, WinctlError, builtin_suite_catalog, validate_r4_compliance,
 };
@@ -79,7 +79,7 @@ impl From<CliCategory> for ToolCategory {
     author = "Winctl2Rust Contributors",
     version,
     about = "100% pure-Rust Windows control, audio, display DDC/CI & EDID, desktop automation, export, dual GUI, and MCP CLI suite (22 non-hooking tools)",
-    long_about = "Replace 22 non-hooking NirSoft Windows control, CoreAudio, display/EDID, and desktop utilities in pure Rust.\n\nMutating operations are gated behind --dry-run (preview) or --allow-mutating --confirm-destructive."
+    long_about = "100% pure-Rust suite of 22 non-hooking Windows control, CoreAudio, display/EDID, and desktop automation utilities.\n\nMutating operations are gated behind --dry-run (preview) or --allow-mutating --confirm-destructive."
 )]
 pub struct Cli {
     /// Logging verbosity level written strictly to stderr (error, warn, info, debug, trace)
@@ -110,7 +110,7 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub custody: Option<PathBuf>,
 
-    /// GetNir filter expression (e.g. "active == true && width >= 1920")
+    /// Tabular filter expression (e.g. "active == true && width >= 1920")
     #[arg(long, global = true)]
     pub filter: Option<String>,
 
@@ -139,12 +139,12 @@ impl Cli {
         }
     }
 
-    pub fn table_query(&self) -> Result<GetNirQuery> {
+    pub fn table_query(&self) -> Result<GuapQuery> {
         let sort = match &self.sort {
-            Some(spec) => GetNirQuery::parse_sort(spec).map_err(|e| anyhow!(e))?,
+            Some(spec) => GuapQuery::parse_sort(spec).map_err(|e| anyhow!(e))?,
             None => Vec::new(),
         };
-        Ok(GetNirQuery {
+        Ok(GuapQuery {
             columns: None,
             filter_expr: self.filter.clone(),
             sort,
@@ -156,22 +156,22 @@ impl Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Non-hooking command launcher, AdvancedRun profiles, RunFromProcess, and AtNow scheduler
+    /// Non-hooking command script runner, launch profiles, parent-attributed spawning, and task scheduler
     Cmd {
         #[command(subcommand)]
         action: CmdSubcommand,
     },
-    /// CoreAudio endpoint/session control, svcl, AppAudioConfig, and Volumouse rules
+    /// CoreAudio endpoint/session control, CLI verbs, per-app PropertyStore config, and wheel volume rules
     Audio {
         #[command(subcommand)]
         action: AudioSubcommand,
     },
-    /// MultiMonitorTool topology, DDC/CI VCP, MonitorInfoView, and DumpEDID parser
+    /// Multi-monitor CCD topology, DDC/CI VCP, display target summary, and VESA EDID parser
     Display {
         #[command(subcommand)]
         action: DisplaySubcommand,
     },
-    /// GUIPropView, WinLister, WinExplorer, SysExporter, Clipboard, HotKeys, Keys, Fonts, and WebCam
+    /// Window properties, top-level windows, child HWND trees, control export, clipboard, hotkeys, keys, fonts, and webcam
     Desktop {
         #[command(subcommand)]
         action: DesktopSubcommand,
@@ -188,9 +188,9 @@ pub enum Commands {
 
 #[derive(Subcommand, Debug)]
 pub enum CmdSubcommand {
-    /// Parse, preview, or execute non-hooking NirCmd DSL scripts
-    Nircmd(NirCmdArgs),
-    /// Validate or launch executables with AdvancedRun INI/JSON profiles
+    /// Parse, preview, or execute non-hooking command script DSL lines
+    Script(ScriptArgs),
+    /// Validate or launch executables with INI/JSON launch profiles
     Run(RunArgs),
     /// Enumerate parent candidates or spawn a child via PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
     FromProc(FromProcArgs),
@@ -199,11 +199,11 @@ pub enum CmdSubcommand {
 }
 
 #[derive(Args, Debug, Default)]
-pub struct NirCmdArgs {
-    /// Inline NirCmd DSL script (newline-separated commands)
+pub struct ScriptArgs {
+    /// Inline command script DSL (newline-separated commands)
     #[arg(long, conflicts_with = "script_file")]
     pub script: Option<String>,
-    /// Path to a NirCmd DSL script file
+    /// Path to a command script DSL file
     #[arg(long, value_name = "PATH")]
     pub script_file: Option<PathBuf>,
     /// Template variable substitution KEY=VAL (repeatable)
@@ -243,10 +243,10 @@ pub struct RunArgs {
     /// Environment variable override KEY=VAL (repeatable)
     #[arg(long = "env", value_name = "KEY=VAL")]
     pub env: Vec<String>,
-    /// AdvancedRun INI/CFG profile file
+    /// Launch profile INI/CFG file
     #[arg(long, value_name = "FILE")]
     pub ini: Option<PathBuf>,
-    /// AdvancedRun JSON LaunchProfile file
+    /// Launch profile JSON file
     #[arg(long, value_name = "JSON_FILE")]
     pub profile: Option<PathBuf>,
     /// Validate profile read-only without launching
@@ -309,14 +309,14 @@ pub struct AtnowArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum AudioSubcommand {
-    /// Inspect or control CoreAudio endpoints, sessions, and subunits (SoundVolumeView)
+    /// Inspect or control CoreAudio endpoints, sessions, and subunits
     View(AudioViewArgs),
-    /// Parse or execute SoundVolumeCommandLine (svcl) verbs
-    Svcl(AudioSvclArgs),
-    /// Inspect or update per-application PropertyStore audio blobs (AppAudioConfig)
+    /// Parse or execute CoreAudio CLI control verbs
+    Ctl(AudioCtlArgs),
+    /// Inspect or update per-application PropertyStore audio blobs
     AppConfig(AudioAppConfigArgs),
-    /// Inspect, validate, evaluate, or run Volumouse rules
-    Volumouse(AudioVolumouseArgs),
+    /// Inspect, validate, evaluate, or run mouse wheel volume rules
+    Wheel(AudioWheelArgs),
 }
 
 #[derive(Args, Debug, Default)]
@@ -348,19 +348,19 @@ pub struct AudioViewArgs {
 }
 
 #[derive(Args, Debug, Default)]
-pub struct AudioSvclArgs {
-    /// Complete svcl command line string (e.g. '/SetVolume "Speakers" 50')
+pub struct AudioCtlArgs {
+    /// Complete CoreAudio CLI command line string (e.g. '/SetVolume "Speakers" 50')
     #[arg(long)]
     pub command_line: Option<String>,
-    /// Structured svcl verb (e.g. SetVolume, GetPercent)
+    /// Structured CoreAudio CLI verb (e.g. SetVolume, GetPercent)
     #[arg(long)]
     pub verb: Option<String>,
-    /// Structured svcl target selector
+    /// Structured CoreAudio CLI target selector
     #[arg(long)]
     pub target: Option<String>,
-    /// Raw trailing svcl tokens (e.g. /GetPercent Speakers)
+    /// Raw trailing CoreAudio CLI tokens (e.g. /GetPercent Speakers)
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
-    pub svcl_args: Vec<String>,
+    pub ctl_args: Vec<String>,
 }
 
 #[derive(Args, Debug, Default)]
@@ -383,11 +383,11 @@ pub struct AudioAppConfigArgs {
 }
 
 #[derive(Args, Debug, Default)]
-pub struct AudioVolumouseArgs {
+pub struct AudioWheelArgs {
     /// Mode: validate_rules | evaluate_events | apply_rule | start_listener
     #[arg(long)]
     pub mode: Option<String>,
-    /// JSON file containing Vec<VolumouseRule>
+    /// JSON file containing Vec<WheelRule>
     #[arg(long, value_name = "JSON")]
     pub rules_file: Option<PathBuf>,
     /// JSON file containing Vec<PointerWheelEvent>
@@ -409,13 +409,13 @@ pub struct AudioVolumouseArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DisplaySubcommand {
-    /// Inspect or configure multi-monitor CCD topology (MultiMonitorTool)
+    /// Inspect or configure multi-monitor CCD topology
     Monitors(DisplayMonitorsArgs),
-    /// Read or write DDC/CI VCP monitor features (ControlMyMonitor)
+    /// Read or write DDC/CI VCP monitor features
     Ddc(DisplayDdcArgs),
-    /// Enumerate live display targets and correlated EDID metadata (MonitorInfoView)
+    /// Enumerate live display targets and correlated EDID metadata
     Info,
-    /// Parse VESA EDID 1.3/1.4 + CEA-861 blocks from live registry or offline .bin/.hex/.reg files (DumpEDID)
+    /// Parse VESA EDID 1.3/1.4 + CEA-861 blocks from live registry or offline .bin/.hex/.reg files
     Edid(DisplayEdidArgs),
 }
 
@@ -471,7 +471,7 @@ pub struct DisplayDdcArgs {
 
 #[derive(Args, Debug, Default)]
 pub struct DisplayEdidArgs {
-    /// Offline EDID binary (.bin), hex dump, DumpEDID text, or Windows .reg export
+    /// Offline EDID binary (.bin), hex dump, offset hex text, or Windows .reg export
     #[arg(long, conflicts_with = "hex")]
     pub file: Option<PathBuf>,
     /// Inline EDID hex string (128+ byte multiples)
@@ -481,25 +481,25 @@ pub struct DisplayEdidArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DesktopSubcommand {
-    /// Inspect or control window properties (GUIPropView)
+    /// Inspect or control window properties
     Props(DesktopPropsArgs),
-    /// List open windows or change placement/state (WinLister)
+    /// List open windows or change placement/state
     Windows(DesktopWindowsArgs),
-    /// Walk recursive HWND child trees or update control text/bounds (WinExplorer)
+    /// Walk recursive HWND child trees or update control text/bounds
     Tree(DesktopTreeArgs),
-    /// Read SysListView32/SysTreeView32 item text via non-injecting messages (SysExporter)
-    Sysexport,
-    /// Inspect, clear, or set active clipboard formats (InsideClipboard)
+    /// Read SysListView32/SysTreeView32 item text via non-injecting messages
+    CtrlExport,
+    /// Inspect, clear, or set active clipboard formats
     Clipboard(DesktopClipboardArgs),
-    /// Browse, capture, restore, delete, or export/import clipboard history (Clipboardic)
+    /// Browse, capture, restore, delete, or export/import clipboard history
     ClipHist(DesktopClipHistArgs),
-    /// Probe registered global hotkeys or decode an offline .lnk shortcut (HotKeysList)
+    /// Probe registered global hotkeys or decode an offline .lnk shortcut
     Hotkeys(DesktopHotkeysArgs),
-    /// Inspect virtual key states, scan codes, and key names (KeyboardStateView)
+    /// Inspect virtual key states, scan codes, and key names
     Keys,
-    /// Enumerate installed fonts or parse an offline .ttf/.otf/.ttc font file (WinFontsView)
+    /// Enumerate installed fonts or parse an offline .ttf/.otf/.ttc font file
     Fonts(DesktopFontsArgs),
-    /// List Media Foundation cameras or capture a BMP/PPM frame (WebCamImageSave)
+    /// List Media Foundation cameras or capture a BMP/PPM frame
     Webcam(DesktopWebcamArgs),
 }
 
@@ -658,16 +658,16 @@ pub fn run_cli(cli: &Cli) -> Result<()> {
 pub fn run_cli_with_bundle(cli: &Cli, bundle: &ToolBundle) -> Result<()> {
     match &cli.command {
         Commands::Cmd { action } => match action {
-            CmdSubcommand::Nircmd(args) => handle_cmd_nircmd(cli, bundle, args),
+            CmdSubcommand::Script(args) => handle_cmd_script(cli, bundle, args),
             CmdSubcommand::Run(args) => handle_cmd_run(cli, bundle, args),
             CmdSubcommand::FromProc(args) => handle_cmd_from_proc(cli, bundle, args),
             CmdSubcommand::Atnow(args) => handle_cmd_atnow(cli, bundle, args),
         },
         Commands::Audio { action } => match action {
             AudioSubcommand::View(args) => handle_audio_view(cli, bundle, args),
-            AudioSubcommand::Svcl(args) => handle_audio_svcl(cli, bundle, args),
+            AudioSubcommand::Ctl(args) => handle_audio_ctl(cli, bundle, args),
             AudioSubcommand::AppConfig(args) => handle_audio_app_config(cli, bundle, args),
-            AudioSubcommand::Volumouse(args) => handle_audio_volumouse(cli, bundle, args),
+            AudioSubcommand::Wheel(args) => handle_audio_wheel(cli, bundle, args),
         },
         Commands::Display { action } => match action {
             DisplaySubcommand::Monitors(args) => handle_display_monitors(cli, bundle, args),
@@ -679,7 +679,7 @@ pub fn run_cli_with_bundle(cli: &Cli, bundle: &ToolBundle) -> Result<()> {
             DesktopSubcommand::Props(args) => handle_desktop_props(cli, bundle, args),
             DesktopSubcommand::Windows(args) => handle_desktop_windows(cli, bundle, args),
             DesktopSubcommand::Tree(args) => handle_desktop_tree(cli, bundle, args),
-            DesktopSubcommand::Sysexport => query_and_emit_provider(cli, bundle, "desktop_sysexport"),
+            DesktopSubcommand::CtrlExport => query_and_emit_provider(cli, bundle, "desktop_ctrl_export"),
             DesktopSubcommand::Clipboard(args) => handle_desktop_clipboard(cli, bundle, args),
             DesktopSubcommand::ClipHist(args) => handle_desktop_clip_hist(cli, bundle, args),
             DesktopSubcommand::Hotkeys(args) => handle_desktop_hotkeys(cli, bundle, args),
@@ -694,7 +694,7 @@ pub fn run_cli_with_bundle(cli: &Cli, bundle: &ToolBundle) -> Result<()> {
     }
 }
 
-fn handle_cmd_nircmd(cli: &Cli, bundle: &ToolBundle, args: &NirCmdArgs) -> Result<()> {
+fn handle_cmd_script(cli: &Cli, bundle: &ToolBundle, args: &ScriptArgs) -> Result<()> {
     let script_opt = match (&args.script, &args.script_file) {
         (Some(s), _) => Some(s.clone()),
         (None, Some(path)) => {
@@ -707,7 +707,7 @@ fn handle_cmd_nircmd(cli: &Cli, bundle: &ToolBundle, args: &NirCmdArgs) -> Resul
         if args.parse_only {
             bail!("--parse-only requires --script or --script-file");
         }
-        return query_and_emit_provider(cli, bundle, "cmd_nircmd_preview");
+        return query_and_emit_provider(cli, bundle, "cmd_script_preview");
     };
 
     let vars = parse_kv_pairs(&args.vars, "--var")?;
@@ -717,12 +717,12 @@ fn handle_cmd_nircmd(cli: &Cli, bundle: &ToolBundle, args: &NirCmdArgs) -> Resul
         execute_cli_action(
             cli,
             bundle,
-            "cmd_nircmd_parse",
+            "cmd_script_parse",
             payload,
             Some(ActionRiskLevel::ReadOnly),
         )
     } else {
-        execute_cli_action(cli, bundle, "cmd_nircmd", payload, None)
+        execute_cli_action(cli, bundle, "cmd_script", payload, None)
     }
 }
 
@@ -737,7 +737,7 @@ fn handle_cmd_run(cli: &Cli, bundle: &ToolBundle, args: &RunArgs) -> Result<()> 
 
     let payload = if let Some(ini_path) = &args.ini {
         let ini = fs::read_to_string(ini_path)
-            .with_context(|| format!("failed reading AdvancedRun INI file {}", ini_path.display()))?;
+            .with_context(|| format!("failed reading launch profile INI file {}", ini_path.display()))?;
         json!({ "ini": ini })
     } else if let Some(profile_path) = &args.profile {
         let text = fs::read_to_string(profile_path)
@@ -764,7 +764,7 @@ fn handle_cmd_run(cli: &Cli, bundle: &ToolBundle, args: &RunArgs) -> Result<()> 
         let run_as_mode = match args.run_as.as_deref().map(str::trim) {
             Some(s) if s.eq_ignore_ascii_case("administrator") || s.eq_ignore_ascii_case("admin") => "Administrator",
             Some(s) if s.eq_ignore_ascii_case("system") => {
-                bail!("--run-as system is not supported by AdvancedRun; use `cmd atnow --run-as-system`")
+                bail!("--run-as system is not supported by `cmd run`; use `cmd atnow --run-as-system`")
             }
             Some(s)
                 if s.eq_ignore_ascii_case("normal")
@@ -913,39 +913,39 @@ fn handle_audio_view(cli: &Cli, bundle: &ToolBundle, args: &AudioViewArgs) -> Re
     execute_cli_action(cli, bundle, "audio_view_control", payload, None)
 }
 
-fn handle_audio_svcl(cli: &Cli, bundle: &ToolBundle, args: &AudioSvclArgs) -> Result<()> {
-    if args.command_line.is_none() && args.verb.is_none() && args.svcl_args.is_empty() {
-        return query_and_emit_provider(cli, bundle, "audio_svcl_status");
+fn handle_audio_ctl(cli: &Cli, bundle: &ToolBundle, args: &AudioCtlArgs) -> Result<()> {
+    if args.command_line.is_none() && args.verb.is_none() && args.ctl_args.is_empty() {
+        return query_and_emit_provider(cli, bundle, "audio_ctl_status");
     }
 
     let (parsed, payload) = if let Some(ref cmd_line) = args.command_line {
-        let p = parse_svcl_command(cmd_line).map_err(|e| anyhow!(e))?;
+        let p = parse_ctl_command(cmd_line).map_err(|e| anyhow!(e))?;
         (p, json!({ "command_line": cmd_line }))
     } else if let Some(ref verb) = args.verb {
         let target = args
             .target
             .as_ref()
-            .ok_or_else(|| anyhow!("`audio svcl --verb` requires --target"))?;
+            .ok_or_else(|| anyhow!("`audio ctl --verb` requires --target"))?;
         let verb_tok = if verb.starts_with('/') || verb.starts_with("--") {
             verb.clone()
         } else {
             format!("/{verb}")
         };
         let mut tokens = vec![verb_tok, target.clone()];
-        tokens.extend(args.svcl_args.iter().cloned());
-        let p = parse_svcl_tokens(&tokens).map_err(|e| anyhow!(e))?;
+        tokens.extend(args.ctl_args.iter().cloned());
+        let p = parse_ctl_tokens(&tokens).map_err(|e| anyhow!(e))?;
         (
             p,
             json!({
                 "verb": verb,
                 "target": target,
-                "args": args.svcl_args,
+                "args": args.ctl_args,
             }),
         )
     } else {
-        let p = parse_svcl_tokens(&args.svcl_args).map_err(|e| anyhow!(e))?;
+        let p = parse_ctl_tokens(&args.ctl_args).map_err(|e| anyhow!(e))?;
         let joined = args
-            .svcl_args
+            .ctl_args
             .iter()
             .map(|t| {
                 if t.contains(char::is_whitespace) && !t.starts_with('"') {
@@ -964,7 +964,7 @@ fn handle_audio_svcl(cli: &Cli, bundle: &ToolBundle, args: &AudioSvclArgs) -> Re
     } else {
         Some(ActionRiskLevel::Mutating)
     };
-    execute_cli_action(cli, bundle, "audio_svcl", payload, risk_override)
+    execute_cli_action(cli, bundle, "audio_ctl", payload, risk_override)
 }
 
 fn handle_audio_app_config(cli: &Cli, bundle: &ToolBundle, args: &AudioAppConfigArgs) -> Result<()> {
@@ -987,9 +987,9 @@ fn handle_audio_app_config(cli: &Cli, bundle: &ToolBundle, args: &AudioAppConfig
     execute_cli_action(cli, bundle, "audio_app_config_update", payload, None)
 }
 
-fn handle_audio_volumouse(cli: &Cli, bundle: &ToolBundle, args: &AudioVolumouseArgs) -> Result<()> {
+fn handle_audio_wheel(cli: &Cli, bundle: &ToolBundle, args: &AudioWheelArgs) -> Result<()> {
     if args.mode.is_none() && args.rules_file.is_none() && args.events_file.is_none() {
-        return query_and_emit_provider(cli, bundle, "audio_volumouse_rules");
+        return query_and_emit_provider(cli, bundle, "audio_wheel_rules");
     }
 
     let mode = args
@@ -998,10 +998,10 @@ fn handle_audio_volumouse(cli: &Cli, bundle: &ToolBundle, args: &AudioVolumouseA
         .unwrap_or("evaluate_events")
         .trim()
         .to_ascii_lowercase();
-    let rules: Option<Vec<VolumouseRule>> = match &args.rules_file {
+    let rules: Option<Vec<WheelRule>> = match &args.rules_file {
         Some(path) => {
             let text = fs::read_to_string(path)
-                .with_context(|| format!("failed reading Volumouse rules {}", path.display()))?;
+                .with_context(|| format!("failed reading wheel rules {}", path.display()))?;
             Some(serde_json::from_str(&text).with_context(|| format!("invalid rules JSON in {}", path.display()))?)
         }
         None => None,
@@ -1009,7 +1009,7 @@ fn handle_audio_volumouse(cli: &Cli, bundle: &ToolBundle, args: &AudioVolumouseA
     let events: Vec<PointerWheelEvent> = match &args.events_file {
         Some(path) => {
             let text = fs::read_to_string(path)
-                .with_context(|| format!("failed reading Volumouse events {}", path.display()))?;
+                .with_context(|| format!("failed reading wheel events {}", path.display()))?;
             serde_json::from_str(&text).with_context(|| format!("invalid events JSON in {}", path.display()))?
         }
         None => Vec::new(),
@@ -1038,7 +1038,7 @@ fn handle_audio_volumouse(cli: &Cli, bundle: &ToolBundle, args: &AudioVolumouseA
         "evaluate_events" if !args.apply_to_backend => Some(ActionRiskLevel::ReadOnly),
         _ => Some(ActionRiskLevel::Mutating),
     };
-    execute_cli_action(cli, bundle, "audio_volumouse", payload, risk_override)
+    execute_cli_action(cli, bundle, "audio_wheel", payload, risk_override)
 }
 
 fn handle_display_monitors(cli: &Cli, bundle: &ToolBundle, args: &DisplayMonitorsArgs) -> Result<()> {
@@ -1427,16 +1427,16 @@ fn handle_catalog(cli: &Cli, args: &CatalogArgs) -> Result<()> {
         return Ok(());
     }
     println!(
-        "{:<22} {:<8} {:<24} {:<18} Summary",
-        "Tool ID", "Group", "NirSoft Name", "Risk"
+        "{:<22} {:<8} {:<28} {:<18} Summary",
+        "Tool ID", "Group", "Tool Name", "Risk"
     );
-    println!("{}", "-".repeat(100));
+    println!("{}", "-".repeat(104));
     for t in catalog {
         println!(
-            "{:<22} {:<8} {:<24} {:<18} {}",
+            "{:<22} {:<8} {:<28} {:<18} {}",
             t.tool_id,
             t.category.as_str(),
-            t.nirsoft_name,
+            t.display_name,
             format!("{:?}", t.risk_level),
             t.summary
         );

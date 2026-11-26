@@ -209,7 +209,7 @@ pub enum ScreenEdgeKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value", rename_all = "snake_case")]
-pub enum VolumouseCondition {
+pub enum WheelCondition {
     Any,
     Alt,
     Ctrl,
@@ -226,11 +226,11 @@ pub enum VolumouseCondition {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VolumouseRule {
+pub struct WheelRule {
     pub rule_id: String,
     pub enabled: bool,
     pub priority: i32,
-    pub conditions: Vec<VolumouseCondition>,
+    pub conditions: Vec<WheelCondition>,
     pub target_device: String,
     pub step_percent: f32,
     pub min_percent: f32,
@@ -269,7 +269,7 @@ pub struct PointerWheelEvent {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VolumouseActionResult {
+pub struct WheelActionResult {
     pub rule_id: String,
     pub target_device: String,
     pub previous_percent: f32,
@@ -304,11 +304,11 @@ pub trait AudioBackend: Send + Sync {
     fn set_app_default_device(&self, process_or_pid: &str, device_id: &str, roles: &[DefaultRole]) -> WinctlResult<()>;
     fn read_app_audio_configs(&self) -> WinctlResult<Vec<RawAppPropertyStoreRecord>>;
     fn write_app_audio_config(&self, subkey: &str, patch: &AppPropertyStorePatch) -> WinctlResult<()>;
-    fn run_volumouse_listener(
+    fn run_wheel_listener(
         &self,
-        rules: &[VolumouseRule],
+        rules: &[WheelRule],
         opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<VolumouseActionResult>>;
+    ) -> WinctlResult<Vec<WheelActionResult>>;
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -380,11 +380,11 @@ impl AudioBackend for UnsupportedAudioBackend {
         )))
     }
 
-    fn run_volumouse_listener(
+    fn run_wheel_listener(
         &self,
-        _rules: &[VolumouseRule],
+        _rules: &[WheelRule],
         _opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<VolumouseActionResult>> {
+    ) -> WinctlResult<Vec<WheelActionResult>> {
         Err(WinctlError::UnsupportedOnPlatform(
             "WM_INPUT raw mouse listener requires Windows".to_string(),
         ))
@@ -921,11 +921,11 @@ impl AudioBackend for MockAudioBackend {
         Ok(())
     }
 
-    fn run_volumouse_listener(
+    fn run_wheel_listener(
         &self,
-        rules: &[VolumouseRule],
+        rules: &[WheelRule],
         opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<VolumouseActionResult>> {
+    ) -> WinctlResult<Vec<WheelActionResult>> {
         self.check_faults()?;
         let events: Vec<PointerWheelEvent> = self
             .queued_wheel_events
@@ -937,7 +937,7 @@ impl AudioBackend for MockAudioBackend {
             .collect();
         let mut results = Vec::new();
         for ev in &events {
-            if let Some(rule) = crate::volumouse::find_matching_rule(rules, ev) {
+            if let Some(rule) = crate::wheel::find_matching_rule(rules, ev) {
                 let target = if rule.target_device.trim().is_empty() {
                     "DefaultRenderDevice".to_string()
                 } else {
@@ -947,9 +947,9 @@ impl AudioBackend for MockAudioBackend {
                     let items = self.items.lock().unwrap();
                     resolve_audio_target(&items, &target)?.volume_percent
                 };
-                if let Some(matched) = crate::volumouse::apply_volumouse_rule(&rule, ev, current) {
+                if let Some(matched) = crate::wheel::apply_wheel_rule(&rule, ev, current) {
                     let snap = self.set_volume_scalar(&target, matched.new_percent / 100.0)?;
-                    results.push(VolumouseActionResult {
+                    results.push(WheelActionResult {
                         rule_id: matched.rule_id,
                         target_device: target,
                         previous_percent: current,

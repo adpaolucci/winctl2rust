@@ -41,7 +41,7 @@ pub fn font_entries_from_file(path: &Path) -> WinctlResult<Vec<InstalledFontEntr
 pub fn fonts_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_fonts",
-        "WinFontsView Installed Fonts & OpenType Metadata",
+        "Installed Fonts & OpenType Metadata",
         vec![
             ColumnDef::new("family", "Family", ColumnType::Text).with_width_hint(180),
             ColumnDef::new("subfamily", "Subfamily", ColumnType::Text).with_width_hint(100),
@@ -96,7 +96,7 @@ impl TableProvider for FontsTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Enumerate installed Windows fonts and decode OpenType name/OS2 tables (WinFontsView)"
+        "Enumerate installed Windows fonts and decode OpenType name/OS2 tables"
     }
 
     fn schema(&self) -> TableSchema {

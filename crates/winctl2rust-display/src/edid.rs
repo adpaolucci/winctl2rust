@@ -767,7 +767,7 @@ pub fn parse_edid_hex_text(text: &str) -> WinctlResult<Vec<u8>> {
                 && rest.starts_with(char::is_whitespace)
                 && !rest.trim_start().is_empty()
             {
-                // DumpEDID / hex dump offset line like "00000000: 00 FF ... | ........"
+                // Hex dump offset line like "00000000: 00 FF ... | ........"
                 let mut hex_part = rest;
                 if let Some((before_pipe, _)) = hex_part.split_once('|') {
                     hex_part = before_pipe;
@@ -865,7 +865,7 @@ pub fn format_edid_hex(bytes: &[u8]) -> String {
 pub fn edid_table_schema() -> TableSchema {
     TableSchema::new(
         "display_edid",
-        "DumpEDID VESA EDID 1.3/1.4 & CEA-861 Records",
+        "VESA EDID 1.3/1.4 & CEA-861 Records",
         vec![
             ColumnDef::new("registry_path", "Registry / Source Path", ColumnType::Text).with_width_hint(260),
             ColumnDef::new("manufacturer", "Manufacturer", ColumnType::Text).with_width_hint(100),
@@ -955,7 +955,7 @@ impl TableProvider for EdidTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Parse and inspect VESA EDID 1.3/1.4 and CEA-861 monitor descriptor blocks (DumpEDID)"
+        "Parse and inspect VESA EDID 1.3/1.4 and CEA-861 monitor descriptor blocks"
     }
 
     fn schema(&self) -> TableSchema {

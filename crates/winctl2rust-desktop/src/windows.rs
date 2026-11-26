@@ -13,7 +13,7 @@ use crate::backend::{DesktopBackend, TopWindowInfo, WindowListerOp, format_hwnd,
 pub fn windows_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_windows",
-        "WinLister Open Windows",
+        "Open Windows",
         vec![
             ColumnDef::new("hwnd", "HWND", ColumnType::Hex).with_width_hint(110),
             ColumnDef::new("title", "Title", ColumnType::Text).with_width_hint(240),
@@ -70,7 +70,7 @@ impl TableProvider for WindowsTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "List open top-level windows with placement state and bounds (WinLister)"
+        "List open top-level windows with placement state and bounds"
     }
 
     fn schema(&self) -> TableSchema {
@@ -117,7 +117,7 @@ impl ActionCommand for WindowsControlAction {
     }
 
     fn description(&self) -> &'static str {
-        "Minimize, maximize, restore, focus, or close an open window (WinLister)"
+        "Minimize, maximize, restore, focus, or close an open window"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -166,7 +166,7 @@ impl ActionCommand for WindowsControlAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview WinLister window placement/state change without modifying live HWND",
+                "Preview window placement/state change without modifying live HWND",
                 json!({
                     "hwnd": format_hwnd(hwnd),
                     "operation": op_norm,

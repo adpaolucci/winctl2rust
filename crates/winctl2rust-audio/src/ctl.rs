@@ -35,7 +35,7 @@ impl SaveFileEncoding {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "verb", rename_all = "snake_case")]
-pub enum SvclVerb {
+pub enum AudioCtlVerb {
     SetVolume {
         target: String,
         percent: f32,
@@ -91,7 +91,7 @@ pub enum SvclVerb {
     },
 }
 
-impl SvclVerb {
+impl AudioCtlVerb {
     pub fn name(&self) -> &'static str {
         match self {
             Self::SetVolume { .. } => "/SetVolume",
@@ -141,21 +141,21 @@ impl SvclVerb {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ParsedSvclCommand {
-    pub verb: SvclVerb,
+pub struct ParsedAudioCtlCommand {
+    pub verb: AudioCtlVerb,
     pub wait_ms: Option<u64>,
     pub save_file_encoding: Option<SaveFileEncoding>,
     pub raw_tokens: Vec<String>,
 }
 
-pub fn tokenize_svcl_args(input: &str) -> WinctlResult<Vec<String>> {
-    Ok(tokenize_svcl_args_with_quotes(input)?
+pub fn tokenize_ctl_args(input: &str) -> WinctlResult<Vec<String>> {
+    Ok(tokenize_ctl_args_with_quotes(input)?
         .into_iter()
         .map(|(tok, _)| tok)
         .collect())
 }
 
-fn tokenize_svcl_args_with_quotes(input: &str) -> WinctlResult<Vec<(String, bool)>> {
+fn tokenize_ctl_args_with_quotes(input: &str) -> WinctlResult<Vec<(String, bool)>> {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
@@ -203,7 +203,7 @@ fn tokenize_svcl_args_with_quotes(input: &str) -> WinctlResult<Vec<(String, bool
 
     if in_quotes {
         return Err(WinctlError::ParseError(
-            "unterminated double quote in svcl command line".to_string(),
+            "unterminated double quote in audio ctl command line".to_string(),
         ));
     }
     if started {
@@ -211,7 +211,7 @@ fn tokenize_svcl_args_with_quotes(input: &str) -> WinctlResult<Vec<(String, bool
     }
     if tokens.is_empty() {
         return Err(WinctlError::InvalidInput(
-            "svcl command line must not be empty".to_string(),
+            "audio ctl command line must not be empty".to_string(),
         ));
     }
     Ok(tokens)
@@ -225,21 +225,23 @@ fn strip_verb_prefix(tok: &str) -> Option<String> {
     }
 }
 
-pub fn parse_svcl_command(command_line: &str) -> WinctlResult<ParsedSvclCommand> {
-    let pairs = tokenize_svcl_args_with_quotes(command_line)?;
+pub fn parse_ctl_command(command_line: &str) -> WinctlResult<ParsedAudioCtlCommand> {
+    let pairs = tokenize_ctl_args_with_quotes(command_line)?;
     let raw_tokens: Vec<String> = pairs.iter().map(|(t, _)| t.clone()).collect();
     validate_r4_compliance(&raw_tokens[0], &raw_tokens[1..])?;
-    parse_svcl_token_pairs(&pairs)
+    parse_ctl_token_pairs(&pairs)
 }
 
-pub fn parse_svcl_tokens(tokens: &[String]) -> WinctlResult<ParsedSvclCommand> {
+pub fn parse_ctl_tokens(tokens: &[String]) -> WinctlResult<ParsedAudioCtlCommand> {
     let pairs: Vec<(String, bool)> = tokens.iter().map(|t| (t.clone(), false)).collect();
-    parse_svcl_token_pairs(&pairs)
+    parse_ctl_token_pairs(&pairs)
 }
 
-fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclCommand> {
+fn parse_ctl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedAudioCtlCommand> {
     if tokens.is_empty() {
-        return Err(WinctlError::InvalidInput("svcl command must not be empty".to_string()));
+        return Err(WinctlError::InvalidInput(
+            "audio ctl command must not be empty".to_string(),
+        ));
     }
 
     let mut wait_ms: Option<u64> = None;
@@ -281,7 +283,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
                 other => {
                     if primary_verb.is_some() {
                         return Err(WinctlError::ParseError(format!(
-                            "unexpected second svcl verb '/{other}'"
+                            "unexpected second audio ctl verb '/{other}'"
                         )));
                     }
                     primary_verb = Some(other.to_string());
@@ -299,13 +301,14 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             i += 1;
         } else {
             return Err(WinctlError::ParseError(format!(
-                "expected svcl /Verb before argument '{tok}'"
+                "expected audio ctl /Verb before argument '{tok}'"
             )));
         }
     }
 
-    let verb_name =
-        primary_verb.ok_or_else(|| WinctlError::ParseError("svcl command line missing primary /Verb".to_string()))?;
+    let verb_name = primary_verb.ok_or_else(|| {
+        WinctlError::ParseError("audio ctl command line missing primary /Verb".to_string())
+    })?;
 
     let verb = match verb_name.as_str() {
         "setvolume" => {
@@ -316,7 +319,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             }
             let target = require_non_empty_target(&primary_args[0], "/SetVolume")?;
             let pct = parse_percent(&primary_args[1])?;
-            SvclVerb::SetVolume { target, percent: pct }
+            AudioCtlVerb::SetVolume { target, percent: pct }
         }
         "setvolumechannels" => {
             if primary_args.len() < 2 {
@@ -329,7 +332,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             for raw in &primary_args[1..] {
                 chs.push(parse_percent(raw)?);
             }
-            SvclVerb::SetVolumeChannels { target, channels: chs }
+            AudioCtlVerb::SetVolumeChannels { target, channels: chs }
         }
         "changevolume" => {
             if primary_args.len() != 2 {
@@ -344,7 +347,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
                     "/ChangeVolume delta {delta} out of range -100..=100"
                 )));
             }
-            SvclVerb::ChangeVolume {
+            AudioCtlVerb::ChangeVolume {
                 target,
                 delta_percent: delta,
             }
@@ -357,7 +360,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             }
             let target = require_non_empty_target(&primary_args[0], "/SetVolumeDecibel")?;
             let db = parse_signed_f32(&primary_args[1], "/SetVolumeDecibel dB")?;
-            SvclVerb::SetVolumeDecibel { target, db }
+            AudioCtlVerb::SetVolumeDecibel { target, db }
         }
         "changevolumedecibel" => {
             if primary_args.len() != 2 {
@@ -367,19 +370,19 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             }
             let target = require_non_empty_target(&primary_args[0], "/ChangeVolumeDecibel")?;
             let delta_db = parse_signed_f32(&primary_args[1], "/ChangeVolumeDecibel delta_dB")?;
-            SvclVerb::ChangeVolumeDecibel { target, delta_db }
+            AudioCtlVerb::ChangeVolumeDecibel { target, delta_db }
         }
         "mute" => {
             let target = require_single_target(&primary_args, "/Mute")?;
-            SvclVerb::Mute { target }
+            AudioCtlVerb::Mute { target }
         }
         "unmute" => {
             let target = require_single_target(&primary_args, "/Unmute")?;
-            SvclVerb::Unmute { target }
+            AudioCtlVerb::Unmute { target }
         }
         "switch" => {
             let target = require_single_target(&primary_args, "/Switch")?;
-            SvclVerb::Switch { target }
+            AudioCtlVerb::Switch { target }
         }
         "setdefault" => {
             if primary_args.len() != 2 {
@@ -389,7 +392,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
             }
             let target = require_non_empty_target(&primary_args[0], "/SetDefault")?;
             let roles = DefaultRole::parse_role_list(&primary_args[1])?;
-            SvclVerb::SetDefault { target, roles }
+            AudioCtlVerb::SetDefault { target, roles }
         }
         "setappdefault" => {
             if primary_args.len() != 3 {
@@ -404,7 +407,7 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
                     "/SetAppDefault requires a non-empty <ProcessOrPID>".to_string(),
                 ));
             }
-            SvclVerb::SetAppDefault {
+            AudioCtlVerb::SetAppDefault {
                 target,
                 roles,
                 process_or_pid: primary_args[2].clone(),
@@ -412,30 +415,30 @@ fn parse_svcl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedSvclC
         }
         "enable" => {
             let target = require_single_target(&primary_args, "/Enable")?;
-            SvclVerb::Enable { target }
+            AudioCtlVerb::Enable { target }
         }
         "disable" => {
             let target = require_single_target(&primary_args, "/Disable")?;
-            SvclVerb::Disable { target }
+            AudioCtlVerb::Disable { target }
         }
         "getpercent" => {
             let target = require_single_target(&primary_args, "/GetPercent")?;
-            SvclVerb::GetPercent { target }
+            AudioCtlVerb::GetPercent { target }
         }
         "getmute" => {
             let target = require_single_target(&primary_args, "/GetMute")?;
-            SvclVerb::GetMute { target }
+            AudioCtlVerb::GetMute { target }
         }
         "getdecibel" => {
             let target = require_single_target(&primary_args, "/GetDecibel")?;
-            SvclVerb::GetDecibel { target }
+            AudioCtlVerb::GetDecibel { target }
         }
         other => {
-            return Err(WinctlError::ParseError(format!("unsupported svcl verb '/{other}'")));
+            return Err(WinctlError::ParseError(format!("unsupported audio ctl verb '/{other}'")));
         }
     };
 
-    Ok(ParsedSvclCommand {
+    Ok(ParsedAudioCtlCommand {
         verb,
         wait_ms,
         save_file_encoding,
@@ -484,7 +487,7 @@ fn parse_signed_f32(raw: &str, label: &str) -> WinctlResult<f32> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SvclExecutionResult {
+pub struct AudioCtlExecutionResult {
     pub command: String,
     pub target: String,
     pub read_only: bool,
@@ -495,7 +498,10 @@ pub struct SvclExecutionResult {
     pub applied: bool,
 }
 
-pub fn execute_svcl(backend: &dyn AudioBackend, parsed: &ParsedSvclCommand) -> WinctlResult<SvclExecutionResult> {
+pub fn execute_ctl(
+    backend: &dyn AudioBackend,
+    parsed: &ParsedAudioCtlCommand,
+) -> WinctlResult<AudioCtlExecutionResult> {
     let items = backend.list_audio_items()?;
     let item = resolve_audio_target(&items, parsed.verb.target())?.clone();
     let prev_json = json!({
@@ -515,46 +521,46 @@ pub fn execute_svcl(backend: &dyn AudioBackend, parsed: &ParsedSvclCommand) -> W
     }
 
     let (new_state, result_value, exit_code, applied) = match &parsed.verb {
-        SvclVerb::SetVolume { percent, .. } => {
+        AudioCtlVerb::SetVolume { percent, .. } => {
             let snap = backend.set_volume_scalar(&item.item_id, *percent / 100.0)?;
             (Some(json!(snap)), json!(snap.volume_percent), 0, true)
         }
-        SvclVerb::SetVolumeChannels { channels, .. } => {
+        AudioCtlVerb::SetVolumeChannels { channels, .. } => {
             let scalars: Vec<f32> = channels.iter().map(|c| c / 100.0).collect();
             let snap = backend.set_channel_volumes(&item.item_id, &scalars)?;
             (Some(json!(snap)), json!(snap.channel_volumes), 0, true)
         }
-        SvclVerb::ChangeVolume { delta_percent, .. } => {
+        AudioCtlVerb::ChangeVolume { delta_percent, .. } => {
             let next = (item.volume_percent + *delta_percent).clamp(0.0, 100.0);
             let snap = backend.set_volume_scalar(&item.item_id, next / 100.0)?;
             (Some(json!(snap)), json!(snap.volume_percent), 0, true)
         }
-        SvclVerb::SetVolumeDecibel { db, .. } => {
+        AudioCtlVerb::SetVolumeDecibel { db, .. } => {
             let snap = backend.set_volume_db(&item.item_id, *db)?;
             (Some(json!(snap)), json!(snap.volume_db), 0, true)
         }
-        SvclVerb::ChangeVolumeDecibel { delta_db, .. } => {
+        AudioCtlVerb::ChangeVolumeDecibel { delta_db, .. } => {
             let next_db = item.volume_db + *delta_db;
             let snap = backend.set_volume_db(&item.item_id, next_db)?;
             (Some(json!(snap)), json!(snap.volume_db), 0, true)
         }
-        SvclVerb::Mute { .. } => {
+        AudioCtlVerb::Mute { .. } => {
             let snap = backend.set_mute(&item.item_id, MuteAction::Mute)?;
             (Some(json!(snap)), json!(snap.muted), 0, true)
         }
-        SvclVerb::Unmute { .. } => {
+        AudioCtlVerb::Unmute { .. } => {
             let snap = backend.set_mute(&item.item_id, MuteAction::Unmute)?;
             (Some(json!(snap)), json!(snap.muted), 0, true)
         }
-        SvclVerb::Switch { .. } => {
+        AudioCtlVerb::Switch { .. } => {
             let snap = backend.set_mute(&item.item_id, MuteAction::Toggle)?;
             (Some(json!(snap)), json!(snap.muted), 0, true)
         }
-        SvclVerb::SetDefault { roles, .. } => {
+        AudioCtlVerb::SetDefault { roles, .. } => {
             backend.set_default_endpoint(&item.item_id, roles)?;
             (Some(json!({ "default_roles": roles })), json!(roles), 0, true)
         }
-        SvclVerb::SetAppDefault {
+        AudioCtlVerb::SetAppDefault {
             roles, process_or_pid, ..
         } => {
             backend.set_app_default_device(process_or_pid, &item.item_id, roles)?;
@@ -565,29 +571,29 @@ pub fn execute_svcl(backend: &dyn AudioBackend, parsed: &ParsedSvclCommand) -> W
                 true,
             )
         }
-        SvclVerb::Enable { .. } => {
+        AudioCtlVerb::Enable { .. } => {
             backend.set_endpoint_enabled(&item.item_id, true)?;
             (Some(json!({ "state": "Active" })), json!(true), 0, true)
         }
-        SvclVerb::Disable { .. } => {
+        AudioCtlVerb::Disable { .. } => {
             backend.set_endpoint_enabled(&item.item_id, false)?;
             (Some(json!({ "state": "Disabled" })), json!(false), 0, true)
         }
-        SvclVerb::GetPercent { .. } => {
+        AudioCtlVerb::GetPercent { .. } => {
             let code = (item.volume_percent * 10.0).round() as i32;
             (None, json!(item.volume_percent), code, false)
         }
-        SvclVerb::GetMute { .. } => {
+        AudioCtlVerb::GetMute { .. } => {
             let code = i32::from(item.muted);
             (None, json!(item.muted), code, false)
         }
-        SvclVerb::GetDecibel { .. } => {
+        AudioCtlVerb::GetDecibel { .. } => {
             let code = (item.volume_db * 10.0).round() as i32;
             (None, json!(item.volume_db), code, false)
         }
     };
 
-    Ok(SvclExecutionResult {
+    Ok(AudioCtlExecutionResult {
         command: parsed.verb.name().to_string(),
         target: item.item_id,
         read_only: parsed.verb.is_read_only(),
@@ -599,29 +605,29 @@ pub fn execute_svcl(backend: &dyn AudioBackend, parsed: &ParsedSvclCommand) -> W
     })
 }
 
-pub struct SvclStatusTableProvider {
+pub struct AudioCtlStatusTableProvider {
     backend: Arc<dyn AudioBackend>,
 }
 
-impl SvclStatusTableProvider {
+impl AudioCtlStatusTableProvider {
     pub fn new(backend: Arc<dyn AudioBackend>) -> Self {
         Self { backend }
     }
 }
 
-impl TableProvider for SvclStatusTableProvider {
+impl TableProvider for AudioCtlStatusTableProvider {
     fn tool_id(&self) -> &'static str {
-        "audio_svcl_status"
+        "audio_ctl_status"
     }
 
     fn description(&self) -> &'static str {
-        "Inspect svcl verb grammar and live resolvable CoreAudio target selectors (SoundVolumeCommandLine)"
+        "Inspect CoreAudio CLI verb grammar and live resolvable target selectors"
     }
 
     fn schema(&self) -> TableSchema {
         TableSchema::new(
-            "audio_svcl_status",
-            "SoundVolumeCommandLine (svcl) Target & Verb Status",
+            "audio_ctl_status",
+            "CoreAudio CLI Target & Verb Status",
             vec![
                 ColumnDef::new("command_line_id", "Target Selector", ColumnType::Text).with_width_hint(260),
                 ColumnDef::new("name", "Name", ColumnType::Text).with_width_hint(200),
@@ -629,7 +635,7 @@ impl TableProvider for SvclStatusTableProvider {
                 ColumnDef::new("volume_percent", "Volume %", ColumnType::Float).with_width_hint(90),
                 ColumnDef::new("volume_db", "Volume dB", ColumnType::Float).with_width_hint(90),
                 ColumnDef::new("muted", "Muted", ColumnType::Bool).with_width_hint(70),
-                ColumnDef::new("example_svcl", "Example svcl Command", ColumnType::Text).with_width_hint(320),
+                ColumnDef::new("example_ctl", "Example Command", ColumnType::Text).with_width_hint(320),
             ],
         )
     }
@@ -667,23 +673,23 @@ impl TableProvider for SvclStatusTableProvider {
     }
 }
 
-pub struct SvclAction {
+pub struct AudioCtlAction {
     backend: Arc<dyn AudioBackend>,
 }
 
-impl SvclAction {
+impl AudioCtlAction {
     pub fn new(backend: Arc<dyn AudioBackend>) -> Self {
         Self { backend }
     }
 }
 
-impl ActionCommand for SvclAction {
+impl ActionCommand for AudioCtlAction {
     fn command_id(&self) -> &'static str {
-        "audio_svcl"
+        "audio_ctl"
     }
 
     fn description(&self) -> &'static str {
-        "Parse and execute SoundVolumeCommandLine (svcl) verbs against CoreAudio"
+        "Parse and execute CoreAudio CLI control verbs against CoreAudio endpoints and sessions"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -696,7 +702,7 @@ impl ActionCommand for SvclAction {
             "properties": {
                 "command_line": {
                     "type": "string",
-                    "description": "svcl CLI expression, e.g. '/SetVolume \"Speakers\" 50' or '/Mute vlc.exe'"
+                    "description": "CoreAudio CLI expression, e.g. '/SetVolume \"Speakers\" 50' or '/Mute vlc.exe'"
                 },
                 "verb": { "type": "string" },
                 "target": { "type": "string" },
@@ -707,12 +713,12 @@ impl ActionCommand for SvclAction {
 
     fn execute(&self, args: &Value, dry_run: bool) -> Result<Value, McpToolError> {
         let parsed = if let Some(cmd) = args.get("command_line").and_then(Value::as_str) {
-            parse_svcl_command(cmd).map_err(McpToolError::from)?
+            parse_ctl_command(cmd).map_err(McpToolError::from)?
         } else if let Some(verb) = args.get("verb").and_then(Value::as_str) {
             let target = args
                 .get("target")
                 .and_then(Value::as_str)
-                .ok_or_else(|| McpToolError::InvalidParams("structured svcl requires 'target'".to_string()))?;
+                .ok_or_else(|| McpToolError::InvalidParams("structured audio_ctl requires 'target'".to_string()))?;
             let mut pairs = Vec::new();
             let mut raw_tokens = Vec::new();
             let verb_tok = if verb.starts_with('/') || verb.starts_with("--") {
@@ -732,17 +738,17 @@ impl ActionCommand for SvclAction {
                 }
             }
             validate_r4_compliance(&raw_tokens[0], &raw_tokens[1..]).map_err(McpToolError::from)?;
-            parse_svcl_token_pairs(&pairs).map_err(McpToolError::from)?
+            parse_ctl_token_pairs(&pairs).map_err(McpToolError::from)?
         } else {
             return Err(McpToolError::InvalidParams(
-                "audio_svcl requires 'command_line' or structured { verb, target }".to_string(),
+                "audio_ctl requires 'command_line' or structured { verb, target }".to_string(),
             ));
         };
 
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview SoundVolumeCommandLine (svcl) execution without modifying audio state",
+                "Preview CoreAudio CLI verb execution without modifying audio state",
                 json!({
                     "verb": parsed.verb.name(),
                     "target": parsed.verb.target(),
@@ -752,7 +758,7 @@ impl ActionCommand for SvclAction {
             ));
         }
 
-        let res = execute_svcl(self.backend.as_ref(), &parsed).map_err(McpToolError::from)?;
+        let res = execute_ctl(self.backend.as_ref(), &parsed).map_err(McpToolError::from)?;
         Ok(json!({
             "dry_run": false,
             "applied": res.applied,

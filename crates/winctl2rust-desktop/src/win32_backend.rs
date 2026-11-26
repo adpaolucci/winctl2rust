@@ -66,21 +66,21 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::core::{BOOL, GUID, HSTRING, PWSTR, w};
 
 use crate::backend::{
-    ClipboardControlResult, ClipboardFormatEntry, DesktopBackend, HotkeyEntry, HotkeyProbeResult, InstalledFontEntry,
-    KeyStateEntry, RawVideoFrame, SysExportItem, TopWindowInfo, TreeControlOp, TreeWindowNode, VideoPixelFormat,
+    ClipboardControlResult, ClipboardFormatEntry, CtrlExportItem, DesktopBackend, HotkeyEntry, HotkeyProbeResult, InstalledFontEntry,
+    KeyStateEntry, RawVideoFrame, TopWindowInfo, TreeControlOp, TreeWindowNode, VideoPixelFormat,
     WebcamDeviceInfo, WindowControlResult, WindowListerOp, WindowPropInfo, WindowPropOp, format_hwnd,
 };
 use crate::clipboard::build_clipboard_entry;
+use crate::ctrl_export::{HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated, is_supported_ctrl_export_class};
 use crate::fonts::font_entries_from_file;
 use crate::hotkeys::{common_hotkey_probe_candidates, format_probe_hotkey, scan_lnk_hotkeys_in_dir};
 use crate::keys::{is_extended_vk, vk_canonical_name};
-use crate::sysexport::{HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated, is_supported_sysexport_class};
 
 const FONTS_REG_KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts";
 const MAX_PROP_WINDOWS: usize = 4096;
 const MAX_PROP_CHILDREN_PER_PARENT: usize = 256;
 const MAX_TREE_NODES: usize = 4096;
-const MAX_SYSEXPORT_ITEMS_PER_CONTROL: usize = 250;
+const MAX_CTRL_EXPORT_ITEMS_PER_CONTROL: usize = 250;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Win32DesktopBackend;
@@ -1314,7 +1314,7 @@ impl DesktopBackend for Win32DesktopBackend {
         })
     }
 
-    fn export_sys_controls(&self) -> WinctlResult<Vec<SysExportItem>> {
+    fn export_sys_controls(&self) -> WinctlResult<Vec<CtrlExportItem>> {
         let tops = enum_top_level_hwnds()?;
         let self_pid = std::process::id();
         let mut proc_cache = HashMap::new();
@@ -1331,7 +1331,7 @@ impl DesktopBackend for Win32DesktopBackend {
                     continue;
                 }
                 let class_name = read_class_name(hwnd);
-                if !is_supported_sysexport_class(&class_name) {
+                if !is_supported_ctrl_export_class(&class_name) {
                     continue;
                 }
                 let mut pid = 0u32;
@@ -1362,7 +1362,7 @@ impl DesktopBackend for Win32DesktopBackend {
 
                     let item_count = send_msg_timeout(hwnd, LVM_GETITEMCOUNT, WPARAM(0), LPARAM(0))
                         .unwrap_or(0)
-                        .min(MAX_SYSEXPORT_ITEMS_PER_CONTROL);
+                        .min(MAX_CTRL_EXPORT_ITEMS_PER_CONTROL);
                     let header_raw = send_msg_timeout(hwnd, LVM_GETHEADER, WPARAM(0), LPARAM(0)).unwrap_or(0);
                     let (col_count, col_titles) = if header_raw != 0 {
                         let hdr_hwnd = HWND(header_raw as *mut c_void);
@@ -1382,7 +1382,7 @@ impl DesktopBackend for Win32DesktopBackend {
                             if let Some(text) = read_remote_listview_text(hproc, hwnd, r as i32, c as i32, wow64)
                                 && !text.is_empty()
                             {
-                                out.push(SysExportItem {
+                                out.push(CtrlExportItem {
                                     source_hwnd: hwnd_val,
                                     control_class: class_name.clone(),
                                     process_name: process_name.clone(),
@@ -1419,13 +1419,13 @@ impl DesktopBackend for Win32DesktopBackend {
                     }
                     let mut row_idx = 0u32;
                     while let Some(hitem) = stack.pop() {
-                        if (row_idx as usize) >= MAX_SYSEXPORT_ITEMS_PER_CONTROL {
+                        if (row_idx as usize) >= MAX_CTRL_EXPORT_ITEMS_PER_CONTROL {
                             break;
                         }
                         if let Some(text) = read_remote_treeview_text(hproc, hwnd, hitem, wow64)
                             && !text.is_empty()
                         {
-                            out.push(SysExportItem {
+                            out.push(CtrlExportItem {
                                 source_hwnd: hwnd_val,
                                 control_class: class_name.clone(),
                                 process_name: process_name.clone(),
@@ -1452,7 +1452,7 @@ impl DesktopBackend for Win32DesktopBackend {
                 } else if lower == "listbox" {
                     let count = send_msg_timeout(hwnd, LB_GETCOUNT, WPARAM(0), LPARAM(0))
                         .unwrap_or(0)
-                        .min(MAX_SYSEXPORT_ITEMS_PER_CONTROL);
+                        .min(MAX_CTRL_EXPORT_ITEMS_PER_CONTROL);
                     for r in 0..count {
                         let len = send_msg_timeout(hwnd, LB_GETTEXTLEN, WPARAM(r), LPARAM(0)).unwrap_or(0);
                         if len > 0 && len < 4096 {
@@ -1462,7 +1462,7 @@ impl DesktopBackend for Win32DesktopBackend {
                             {
                                 let text = decode_utf16_nul_terminated(&buf);
                                 if !text.is_empty() {
-                                    out.push(SysExportItem {
+                                    out.push(CtrlExportItem {
                                         source_hwnd: hwnd_val,
                                         control_class: class_name.clone(),
                                         process_name: process_name.clone(),
@@ -1478,7 +1478,7 @@ impl DesktopBackend for Win32DesktopBackend {
                 } else if lower == "combobox" {
                     let count = send_msg_timeout(hwnd, CB_GETCOUNT, WPARAM(0), LPARAM(0))
                         .unwrap_or(0)
-                        .min(MAX_SYSEXPORT_ITEMS_PER_CONTROL);
+                        .min(MAX_CTRL_EXPORT_ITEMS_PER_CONTROL);
                     for r in 0..count {
                         let len = send_msg_timeout(hwnd, CB_GETLBTEXTLEN, WPARAM(r), LPARAM(0)).unwrap_or(0);
                         if len > 0 && len < 4096 {
@@ -1488,7 +1488,7 @@ impl DesktopBackend for Win32DesktopBackend {
                             {
                                 let text = decode_utf16_nul_terminated(&buf);
                                 if !text.is_empty() {
-                                    out.push(SysExportItem {
+                                    out.push(CtrlExportItem {
                                         source_hwnd: hwnd_val,
                                         control_class: class_name.clone(),
                                         process_name: process_name.clone(),
@@ -1510,7 +1510,7 @@ impl DesktopBackend for Win32DesktopBackend {
                         {
                             let text = decode_utf16_nul_terminated(&buf);
                             if !text.is_empty() {
-                                out.push(SysExportItem {
+                                out.push(CtrlExportItem {
                                     source_hwnd: hwnd_val,
                                     control_class: class_name.clone(),
                                     process_name: process_name.clone(),

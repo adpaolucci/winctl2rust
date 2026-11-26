@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Non-hooking command execution, NirCmd DSL, AdvancedRun profiles, RunFromProcess, and AtNow Task Scheduler v2 tools for winctl2rust"
+description = "Non-hooking command script DSL, launch profiles, parent-attributed spawning, and Task Scheduler v2 tools for winctl2rust"
 
 [features]
 default = []

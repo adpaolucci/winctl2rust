@@ -5,13 +5,13 @@ pub mod clip_hist;
 pub mod clipboard;
 #[cfg(any(test, feature = "test-support"))]
 pub mod fixtures;
+pub mod ctrl_export;
 pub mod fonts;
 pub mod hotkeys;
 pub mod keys;
 pub mod lnk;
 pub mod opentype;
 pub mod props;
-pub mod sysexport;
 pub mod tree;
 pub mod webcam;
 pub mod windows;
@@ -48,7 +48,7 @@ pub fn providers(backend: Arc<dyn DesktopBackend>) -> Vec<Arc<dyn TableProvider>
         Arc::new(props::PropsTableProvider::new(Arc::clone(&backend))),
         Arc::new(windows::WindowsTableProvider::new(Arc::clone(&backend))),
         Arc::new(tree::TreeTableProvider::new(Arc::clone(&backend))),
-        Arc::new(sysexport::SysExportTableProvider::new(Arc::clone(&backend))),
+        Arc::new(ctrl_export::CtrlExportTableProvider::new(Arc::clone(&backend))),
         Arc::new(clipboard::ClipboardTableProvider::new(Arc::clone(&backend))),
         Arc::new(clip_hist::ClipHistTableProvider::new(Arc::clone(&backend))),
         Arc::new(hotkeys::HotkeysTableProvider::new(Arc::clone(&backend))),
@@ -576,7 +576,7 @@ mod tests {
             "desktop_props",
             "desktop_windows",
             "desktop_tree",
-            "desktop_sysexport",
+            "desktop_ctrl_export",
             "desktop_clipboard",
             "desktop_clip_hist",
             "desktop_hotkeys",

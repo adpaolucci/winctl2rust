@@ -88,7 +88,7 @@ impl ScheduleTimeSpec {
         }
 
         Err(WinctlError::ParseError(format!(
-            "unrecognized AtNow schedule spec '{trimmed}' (expected 'now', '+Ns/+Nm/+Nh', 'HH:MM', or 'YYYY-MM-DDTHH:MM:SS')"
+            "unrecognized schedule spec '{trimmed}' (expected 'now', '+Ns/+Nm/+Nh', 'HH:MM', or 'YYYY-MM-DDTHH:MM:SS')"
         )))
     }
 
@@ -228,15 +228,17 @@ impl AtNowTaskRequest {
     pub fn validate(&self) -> WinctlResult<()> {
         if self.task_name.trim().is_empty() {
             return Err(WinctlError::InvalidInput(
-                "AtNow task_name must not be empty".to_string(),
+                "Scheduled task_name must not be empty".to_string(),
             ));
         }
         if self.command.trim().is_empty() {
-            return Err(WinctlError::InvalidInput("AtNow command must not be empty".to_string()));
+            return Err(WinctlError::InvalidInput(
+                "Scheduled task command must not be empty".to_string(),
+            ));
         }
         if !self.folder_path.starts_with('\\') {
             return Err(WinctlError::InvalidInput(
-                "AtNow folder_path must start with '\\'".to_string(),
+                "Scheduled task folder_path must start with '\\'".to_string(),
             ));
         }
         self.run_at.validate()?;
@@ -295,7 +297,7 @@ impl TableProvider for AtNowTasksTableProvider {
     fn schema(&self) -> TableSchema {
         TableSchema::new(
             "cmd_atnow_tasks",
-            "AtNow Scheduled Tasks",
+            "Scheduled Tasks",
             vec![
                 ColumnDef::new("task_name", "Task Name", ColumnType::Text).with_width_hint(180),
                 ColumnDef::new("folder", "Folder", ColumnType::Text).with_width_hint(90),

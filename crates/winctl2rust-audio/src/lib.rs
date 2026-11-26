@@ -2,9 +2,9 @@
 
 pub mod app_config;
 pub mod backend;
-pub mod svcl;
+pub mod ctl;
 pub mod view;
-pub mod volumouse;
+pub mod wheel;
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
@@ -36,18 +36,18 @@ pub fn default_backend() -> Arc<dyn AudioBackend> {
 pub fn providers(backend: Arc<dyn AudioBackend>) -> Vec<Arc<dyn TableProvider>> {
     vec![
         Arc::new(view::AudioViewTableProvider::new(Arc::clone(&backend))),
-        Arc::new(svcl::SvclStatusTableProvider::new(Arc::clone(&backend))),
+        Arc::new(ctl::AudioCtlStatusTableProvider::new(Arc::clone(&backend))),
         Arc::new(app_config::AppAudioConfigTableProvider::new(Arc::clone(&backend))),
-        Arc::new(volumouse::VolumouseRulesTableProvider::default()),
+        Arc::new(wheel::WheelRulesTableProvider::default()),
     ]
 }
 
 pub fn actions(backend: Arc<dyn AudioBackend>) -> Vec<Arc<dyn ActionCommand>> {
     vec![
         Arc::new(view::AudioViewControlAction::new(Arc::clone(&backend))),
-        Arc::new(svcl::SvclAction::new(Arc::clone(&backend))),
+        Arc::new(ctl::AudioCtlAction::new(Arc::clone(&backend))),
         Arc::new(app_config::AppAudioConfigUpdateAction::new(Arc::clone(&backend))),
-        Arc::new(volumouse::VolumouseAction::new(backend)),
+        Arc::new(wheel::WheelAction::new(backend)),
     ]
 }
 
@@ -97,8 +97,8 @@ mod tests {
         AudioBackend, DefaultRole, MockAudioBackend, PointerWheelEvent, RawAppPropertyStoreRecord, ScreenEdgeKind,
         UnsupportedAudioBackend,
     };
-    use crate::svcl::{SaveFileEncoding, SvclVerb, execute_svcl, parse_svcl_command};
-    use crate::volumouse::{default_volumouse_rules, evaluate_event_stream, evaluate_wheel_event};
+    use crate::ctl::{AudioCtlVerb, SaveFileEncoding, execute_ctl, parse_ctl_command};
+    use crate::wheel::{default_wheel_rules, evaluate_event_stream, evaluate_wheel_event};
     use crate::{bundle, providers};
 
     #[test]
@@ -130,64 +130,64 @@ mod tests {
     }
 
     #[test]
-    fn svcl_grammar_parses_all_verbs_and_rejects_invalid_inputs() {
+    fn ctl_grammar_parses_all_verbs_and_rejects_invalid_inputs() {
         let cases = [
             (
                 "/SetVolume \"Speakers\" 75",
-                SvclVerb::SetVolume {
+                AudioCtlVerb::SetVolume {
                     target: "Speakers".into(),
                     percent: 75.0,
                 },
             ),
             (
                 "/SetVolumeChannels \"Speakers\" 50 80",
-                SvclVerb::SetVolumeChannels {
+                AudioCtlVerb::SetVolumeChannels {
                     target: "Speakers".into(),
                     channels: vec![50.0, 80.0],
                 },
             ),
             (
                 "/ChangeVolume \"Speakers\" -15",
-                SvclVerb::ChangeVolume {
+                AudioCtlVerb::ChangeVolume {
                     target: "Speakers".into(),
                     delta_percent: -15.0,
                 },
             ),
             (
                 "/SetVolumeDecibel \"Speakers\" -6.5",
-                SvclVerb::SetVolumeDecibel {
+                AudioCtlVerb::SetVolumeDecibel {
                     target: "Speakers".into(),
                     db: -6.5,
                 },
             ),
             (
                 "/ChangeVolumeDecibel \"Speakers\" +3.0",
-                SvclVerb::ChangeVolumeDecibel {
+                AudioCtlVerb::ChangeVolumeDecibel {
                     target: "Speakers".into(),
                     delta_db: 3.0,
                 },
             ),
             (
                 "/Mute vlc.exe",
-                SvclVerb::Mute {
+                AudioCtlVerb::Mute {
                     target: "vlc.exe".into(),
                 },
             ),
             (
                 "/Unmute vlc.exe",
-                SvclVerb::Unmute {
+                AudioCtlVerb::Unmute {
                     target: "vlc.exe".into(),
                 },
             ),
             (
                 "/Switch \"Headphones\"",
-                SvclVerb::Switch {
+                AudioCtlVerb::Switch {
                     target: "Headphones".into(),
                 },
             ),
             (
                 "/SetDefault \"Headphones\" 0,1,2",
-                SvclVerb::SetDefault {
+                AudioCtlVerb::SetDefault {
                     target: "Headphones".into(),
                     roles: vec![
                         DefaultRole::Console,
@@ -198,7 +198,7 @@ mod tests {
             ),
             (
                 "/SetDefault \"Speakers\" all",
-                SvclVerb::SetDefault {
+                AudioCtlVerb::SetDefault {
                     target: "Speakers".into(),
                     roles: vec![
                         DefaultRole::Console,
@@ -209,7 +209,7 @@ mod tests {
             ),
             (
                 "/SetAppDefault \"Headphones\" all vlc.exe",
-                SvclVerb::SetAppDefault {
+                AudioCtlVerb::SetAppDefault {
                     target: "Headphones".into(),
                     roles: vec![
                         DefaultRole::Console,
@@ -221,78 +221,78 @@ mod tests {
             ),
             (
                 "/Enable \"Headphones\"",
-                SvclVerb::Enable {
+                AudioCtlVerb::Enable {
                     target: "Headphones".into(),
                 },
             ),
             (
                 "/Disable \"Headphones\"",
-                SvclVerb::Disable {
+                AudioCtlVerb::Disable {
                     target: "Headphones".into(),
                 },
             ),
             (
                 "/GetPercent DefaultRenderDevice",
-                SvclVerb::GetPercent {
+                AudioCtlVerb::GetPercent {
                     target: "DefaultRenderDevice".into(),
                 },
             ),
             (
                 "/GetMute \"Headphones\"",
-                SvclVerb::GetMute {
+                AudioCtlVerb::GetMute {
                     target: "Headphones".into(),
                 },
             ),
             (
                 "/GetDecibel \"Speakers\"",
-                SvclVerb::GetDecibel {
+                AudioCtlVerb::GetDecibel {
                     target: "Speakers".into(),
                 },
             ),
         ];
 
         for (cmd, expected) in cases {
-            let parsed = parse_svcl_command(cmd).unwrap_or_else(|e| panic!("failed '{cmd}': {e}"));
+            let parsed = parse_ctl_command(cmd).unwrap_or_else(|e| panic!("failed '{cmd}': {e}"));
             assert_eq!(parsed.verb, expected);
         }
 
-        let with_opts = parse_svcl_command("/SaveFileEncoding utf8 /Wait 25 /Mute vlc.exe").unwrap();
+        let with_opts = parse_ctl_command("/SaveFileEncoding utf8 /Wait 25 /Mute vlc.exe").unwrap();
         assert_eq!(with_opts.save_file_encoding, Some(SaveFileEncoding::Utf8));
         assert_eq!(with_opts.wait_ms, Some(25));
 
-        assert!(parse_svcl_command("").is_err());
-        assert!(parse_svcl_command("/SetVolume \"Speakers\" 150").is_err());
-        assert!(parse_svcl_command("/SetVolume \"unterminated").is_err());
-        assert!(parse_svcl_command("/Wait 999999 /Mute vlc.exe").is_err());
-        assert!(parse_svcl_command("/UnknownVerb Speakers").is_err());
+        assert!(parse_ctl_command("").is_err());
+        assert!(parse_ctl_command("/SetVolume \"Speakers\" 150").is_err());
+        assert!(parse_ctl_command("/SetVolume \"unterminated").is_err());
+        assert!(parse_ctl_command("/Wait 999999 /Mute vlc.exe").is_err());
+        assert!(parse_ctl_command("/UnknownVerb Speakers").is_err());
         assert!(matches!(
-            parse_svcl_command("/Mute runasdate"),
+            parse_ctl_command("/Mute runasdate"),
             Err(WinctlError::PolicyDenied(_))
         ));
     }
 
     #[test]
-    fn svcl_executes_against_mock_backend_including_get_exit_codes() {
+    fn ctl_executes_against_mock_backend_including_get_exit_codes() {
         let mock = MockAudioBackend::with_sample_data();
-        let get_pct = parse_svcl_command("/GetPercent DefaultRenderDevice").unwrap();
-        let res = execute_svcl(&mock, &get_pct).unwrap();
+        let get_pct = parse_ctl_command("/GetPercent DefaultRenderDevice").unwrap();
+        let res = execute_ctl(&mock, &get_pct).unwrap();
         assert!(res.read_only);
         assert!(!res.applied);
         assert_eq!(res.exit_code, 650);
 
-        let change = parse_svcl_command("/ChangeVolume \"Speakers\" -15").unwrap();
-        let res2 = execute_svcl(&mock, &change).unwrap();
+        let change = parse_ctl_command("/ChangeVolume \"Speakers\" -15").unwrap();
+        let res2 = execute_ctl(&mock, &change).unwrap();
         assert!(res2.applied);
         assert_eq!(res2.result_value, json!(50.0));
 
-        let get_mute = parse_svcl_command("/GetMute \"Headphones\"").unwrap();
-        let res3 = execute_svcl(&mock, &get_mute).unwrap();
+        let get_mute = parse_ctl_command("/GetMute \"Headphones\"").unwrap();
+        let res3 = execute_ctl(&mock, &get_mute).unwrap();
         assert_eq!(res3.exit_code, 1);
 
-        let set_def = parse_svcl_command("/SetDefault \"Headphones\" 0,1").unwrap();
-        execute_svcl(&mock, &set_def).unwrap();
-        let app_def = parse_svcl_command("/SetAppDefault \"Headphones\" all 4120").unwrap();
-        execute_svcl(&mock, &app_def).unwrap();
+        let set_def = parse_ctl_command("/SetDefault \"Headphones\" 0,1").unwrap();
+        execute_ctl(&mock, &set_def).unwrap();
+        let app_def = parse_ctl_command("/SetAppDefault \"Headphones\" all 4120").unwrap();
+        execute_ctl(&mock, &app_def).unwrap();
         assert_eq!(mock.app_default_routes.lock().unwrap().len(), 1);
     }
 
@@ -393,8 +393,8 @@ mod tests {
     }
 
     #[test]
-    fn volumouse_rule_priority_clamping_and_stream_evaluation() {
-        let rules = default_volumouse_rules();
+    fn wheel_rule_priority_clamping_and_stream_evaluation() {
+        let rules = default_wheel_rules();
         // Ctrl+Alt beats Alt alone (priority 200 vs 100)
         let ev_ctrl_alt = PointerWheelEvent {
             wheel_delta: 120,
@@ -501,9 +501,9 @@ mod tests {
 
         for table_id in [
             "audio_view",
-            "audio_svcl_status",
+            "audio_ctl_status",
             "audio_app_config",
-            "audio_volumouse_rules",
+            "audio_wheel_rules",
         ] {
             let res = registry.dispatch(table_id, &json!({})).unwrap();
             assert!(res["rows"].is_array(), "missing rows for {table_id}");
@@ -515,7 +515,7 @@ mod tests {
                 json!({ "action": "set_volume", "target": "Speakers", "volume_percent": 45.0, "dry_run": true }),
             ),
             (
-                "audio_svcl",
+                "audio_ctl",
                 json!({ "command_line": "/Mute vlc.exe", "dry_run": true }),
             ),
             (
@@ -523,7 +523,7 @@ mod tests {
                 json!({ "subkey": "186430e1_0", "volume_percent": 30.0, "dry_run": true }),
             ),
             (
-                "audio_volumouse",
+                "audio_wheel",
                 json!({ "mode": "start_listener", "duration_ms": 50, "max_events": 1, "dry_run": true }),
             ),
         ];
@@ -560,13 +560,13 @@ mod tests {
             .unwrap();
         assert_eq!(res_view["applied"], json!(true));
 
-        let res_svcl = registry
+        let res_ctl = registry
             .dispatch(
-                "audio_svcl",
+                "audio_ctl",
                 &json!({ "command_line": "/Mute vlc.exe", "confirm_destructive": true, "dry_run": false }),
             )
             .unwrap();
-        assert_eq!(res_svcl["applied"], json!(true));
+        assert_eq!(res_ctl["applied"], json!(true));
 
         let res_cfg = registry
             .dispatch(
@@ -576,13 +576,13 @@ mod tests {
             .unwrap();
         assert_eq!(res_cfg["applied"], json!(true));
 
-        let res_vm = registry
+        let res_wheel = registry
             .dispatch(
-                "audio_volumouse",
+                "audio_wheel",
                 &json!({ "mode": "start_listener", "duration_ms": 50, "max_events": 1, "confirm_destructive": true, "dry_run": false }),
             )
             .unwrap();
-        assert_eq!(res_vm["applied"], json!(true));
+        assert_eq!(res_wheel["applied"], json!(true));
         assert!(!mock.action_log.lock().unwrap().is_empty());
 
         let provs = providers(mock);
@@ -626,19 +626,19 @@ mod tests {
             Err(WinctlError::InvalidInput(_))
         ));
 
-        // Repeated Volumouse listener calls on the same thread must not poison the queue with WM_QUIT
+        // Repeated wheel listener calls on the same thread must not poison the queue with WM_QUIT
         let opts = crate::backend::ListenerOptions {
             duration_ms: 15,
             max_events: 1,
         };
-        let r1 = backend.run_volumouse_listener(&[], &opts).unwrap();
-        let r2 = backend.run_volumouse_listener(&[], &opts).unwrap();
+        let r1 = backend.run_wheel_listener(&[], &opts).unwrap();
+        let r2 = backend.run_wheel_listener(&[], &opts).unwrap();
         assert!(r1.is_empty());
         assert!(r2.is_empty());
     }
 
     #[test]
-    fn regression_volumouse_resolves_non_first_target_and_guards_invalid_bounds_and_nan() {
+    fn regression_wheel_resolves_non_first_target_and_guards_invalid_bounds_and_nan() {
         let mock = MockAudioBackend::with_sample_data();
         // Speakers is first at 65%; Headphones is second at 40%.
         // left_edge_headphones targets "Headphones (USB Audio)".
@@ -657,9 +657,9 @@ mod tests {
             screen_edge: Some(ScreenEdgeKind::Left),
             window_class: String::new(),
         });
-        let rules = default_volumouse_rules();
+        let rules = default_wheel_rules();
         let results = mock
-            .run_volumouse_listener(
+            .run_wheel_listener(
                 &rules,
                 &crate::backend::ListenerOptions {
                     duration_ms: 50,
@@ -694,11 +694,11 @@ mod tests {
             window_class: String::new(),
         };
         let bad_rules = vec![
-            crate::backend::VolumouseRule {
+            crate::backend::WheelRule {
                 rule_id: "inverted_bounds".to_string(),
                 enabled: true,
                 priority: 100,
-                conditions: vec![crate::backend::VolumouseCondition::Alt],
+                conditions: vec![crate::backend::WheelCondition::Alt],
                 target_device: "DefaultRenderDevice".to_string(),
                 step_percent: 5.0,
                 min_percent: 80.0,
@@ -706,11 +706,11 @@ mod tests {
                 consume_wheel: false,
                 invert_direction: false,
             },
-            crate::backend::VolumouseRule {
+            crate::backend::WheelRule {
                 rule_id: "nan_step".to_string(),
                 enabled: true,
                 priority: 90,
-                conditions: vec![crate::backend::VolumouseCondition::Alt],
+                conditions: vec![crate::backend::WheelCondition::Alt],
                 target_device: "DefaultRenderDevice".to_string(),
                 step_percent: f32::NAN,
                 min_percent: 0.0,
@@ -718,11 +718,11 @@ mod tests {
                 consume_wheel: false,
                 invert_direction: false,
             },
-            crate::backend::VolumouseRule {
+            crate::backend::WheelRule {
                 rule_id: "zero_step".to_string(),
                 enabled: true,
                 priority: 80,
-                conditions: vec![crate::backend::VolumouseCondition::Alt],
+                conditions: vec![crate::backend::WheelCondition::Alt],
                 target_device: "DefaultRenderDevice".to_string(),
                 step_percent: 0.0,
                 min_percent: 0.0,
@@ -788,34 +788,34 @@ mod tests {
     }
 
     #[test]
-    fn regression_svcl_quoting_empty_targets_percent_roles_and_view_control() {
-        let q1 = parse_svcl_command(r#"/SetVolume "/dev/audio" 50"#).unwrap();
+    fn regression_ctl_quoting_empty_targets_percent_roles_and_view_control() {
+        let q1 = parse_ctl_command(r#"/SetVolume "/dev/audio" 50"#).unwrap();
         assert_eq!(
             q1.verb,
-            SvclVerb::SetVolume {
+            AudioCtlVerb::SetVolume {
                 target: "/dev/audio".to_string(),
                 percent: 50.0,
             }
         );
-        let q2 = parse_svcl_command(r#"/Mute "--my-speaker""#).unwrap();
+        let q2 = parse_ctl_command(r#"/Mute "--my-speaker""#).unwrap();
         assert_eq!(
             q2.verb,
-            SvclVerb::Mute {
+            AudioCtlVerb::Mute {
                 target: "--my-speaker".to_string(),
             }
         );
 
-        assert!(parse_svcl_command(r#"/SetVolume "" 50"#).is_err());
-        assert!(parse_svcl_command(r#"/SetVolumeChannels "  " 50 50"#).is_err());
-        assert!(parse_svcl_command(r#"/ChangeVolume "" 10"#).is_err());
-        assert!(parse_svcl_command(r#"/SetVolumeDecibel "" -6"#).is_err());
-        assert!(parse_svcl_command(r#"/ChangeVolumeDecibel "" 3"#).is_err());
-        assert!(parse_svcl_command(r#"/SetDefault "" all"#).is_err());
-        assert!(parse_svcl_command(r#"/SetAppDefault "" all vlc.exe"#).is_err());
-        assert!(parse_svcl_command(r#"/SetAppDefault "Speakers" all """#).is_err());
+        assert!(parse_ctl_command(r#"/SetVolume "" 50"#).is_err());
+        assert!(parse_ctl_command(r#"/SetVolumeChannels "  " 50 50"#).is_err());
+        assert!(parse_ctl_command(r#"/ChangeVolume "" 10"#).is_err());
+        assert!(parse_ctl_command(r#"/SetVolumeDecibel "" -6"#).is_err());
+        assert!(parse_ctl_command(r#"/ChangeVolumeDecibel "" 3"#).is_err());
+        assert!(parse_ctl_command(r#"/SetDefault "" all"#).is_err());
+        assert!(parse_ctl_command(r#"/SetAppDefault "" all vlc.exe"#).is_err());
+        assert!(parse_ctl_command(r#"/SetAppDefault "Speakers" all """#).is_err());
 
-        assert!(parse_svcl_command("/SetVolume Speakers 50%").is_ok());
-        assert!(parse_svcl_command("/SetVolume Speakers 50%%").is_err());
+        assert!(parse_ctl_command("/SetVolume Speakers 50%").is_ok());
+        assert!(parse_ctl_command("/SetVolume Speakers 50%%").is_err());
 
         assert!(matches!(
             DefaultRole::parse_role_list("0,all,invalid"),
@@ -841,9 +841,9 @@ mod tests {
             .is_err()
         );
 
-        let svcl_action = crate::svcl::SvclAction::new(mock);
+        let ctl_action = crate::ctl::AudioCtlAction::new(mock);
         let structured = guap_mcp::ActionCommand::execute(
-            &svcl_action,
+            &ctl_action,
             &json!({ "verb": "/SetVolume", "target": "/dev/audio", "args": ["50"] }),
             true,
         )

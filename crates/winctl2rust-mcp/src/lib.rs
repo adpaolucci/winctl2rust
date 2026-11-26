@@ -144,7 +144,7 @@ mod tests {
                 );
             }
         }
-        // 22 TableProviders + 2 ReadOnly ActionCommands (cmd_nircmd_parse, cmd_run_validate) = 24 readOnlyHint: true
+        // 22 TableProviders + 2 ReadOnly ActionCommands (cmd_script_parse, cmd_run_validate) = 24 readOnlyHint: true
         assert_eq!(ro_count, 24);
         // 16 Mutating / PrivilegedMutating ActionCommands = 16 destructiveHint: true
         assert_eq!(mut_count, 16);
@@ -156,7 +156,7 @@ mod tests {
         let registry = build_registry_from_bundle(PolicyMode::ReadOnlyOnly, &bundle);
 
         let mutating_payloads: Vec<(&str, Value)> = vec![
-            ("cmd_nircmd", json!({ "script": "beep 440 100", "dry_run": true })),
+            ("cmd_script", json!({ "script": "beep 440 100", "dry_run": true })),
             ("cmd_run", json!({ "exe_path": "notepad.exe", "dry_run": true })),
             (
                 "cmd_from_proc",
@@ -171,14 +171,14 @@ mod tests {
                 json!({ "action": "set_volume", "target": "Speakers", "volume_percent": 50.0, "dry_run": true }),
             ),
             (
-                "audio_svcl",
+                "audio_ctl",
                 json!({ "command_line": "/Mute vlc.exe", "dry_run": true }),
             ),
             (
                 "audio_app_config_update",
                 json!({ "subkey": "186430e1_0", "volume_percent": 40.0, "dry_run": true }),
             ),
-            ("audio_volumouse", json!({ "mode": "validate_rules", "dry_run": true })),
+            ("audio_wheel", json!({ "mode": "validate_rules", "dry_run": true })),
             (
                 "display_monitors_apply",
                 json!({ "operation": "set_primary", "target": "\\\\.\\DISPLAY1", "dry_run": true }),
@@ -222,7 +222,7 @@ mod tests {
 
         // Verify both ReadOnly actions succeed in ReadOnlyOnly mode
         let parsed = registry
-            .dispatch("cmd_nircmd_parse", &json!({ "script": "beep 440 100" }))
+            .dispatch("cmd_script_parse", &json!({ "script": "beep 440 100" }))
             .unwrap();
         assert_eq!(parsed["valid"], json!(true));
         let validated = registry
@@ -274,7 +274,7 @@ mod tests {
                 "jsonrpc": "2.0",
                 "id": 5,
                 "method": "tools/call",
-                "params": { "name": "cmd_nircmd", "arguments": { "script": "beep 440 100" } }
+                "params": { "name": "cmd_script", "arguments": { "script": "beep 440 100" } }
             })
             .to_string(),
         );
@@ -317,14 +317,14 @@ mod tests {
             let mut confirmed = args.clone();
             confirmed["confirm_destructive"] = json!(true);
             let res = mut_registry.dispatch(name, &confirmed).unwrap();
-            if *name != "audio_volumouse" {
+            if *name != "audio_wheel" {
                 assert_eq!(res["dry_run"], json!(true), "dry_run mismatch for {name}");
             }
             assert_eq!(res["applied"], json!(false), "applied mismatch for {name}");
         }
 
         // Nothing should have been mutated in dry_run
-        assert!(ctx.cmd.executed_nircmds.lock().unwrap().is_empty());
+        assert!(ctx.cmd.executed_scripts.lock().unwrap().is_empty());
         assert!(ctx.audio.action_log.lock().unwrap().is_empty());
         assert!(ctx.display.action_log.lock().unwrap().is_empty());
         assert!(ctx.desktop.action_log.lock().unwrap().is_empty());
@@ -333,12 +333,12 @@ mod tests {
         // Real mock mutations succeed when confirm_destructive=true and dry_run=false
         let mut_res = mut_registry
             .dispatch(
-                "cmd_nircmd",
+                "cmd_script",
                 &json!({ "script": "beep 440 100", "confirm_destructive": true, "dry_run": false }),
             )
             .unwrap();
         assert_eq!(mut_res["applied"], json!(true));
-        assert_eq!(ctx.cmd.executed_nircmds.lock().unwrap().len(), 1);
+        assert_eq!(ctx.cmd.executed_scripts.lock().unwrap().len(), 1);
 
         let audio_res = mut_registry
             .dispatch(
@@ -369,7 +369,7 @@ mod tests {
 
         // Verify risk classification consistency
         for a in &bundle.actions {
-            let is_ro = matches!(a.command_id(), "cmd_nircmd_parse" | "cmd_run_validate");
+            let is_ro = matches!(a.command_id(), "cmd_script_parse" | "cmd_run_validate");
             if is_ro {
                 assert_eq!(a.risk_level(), ActionRiskLevel::ReadOnly);
             } else if a.command_id() == "cmd_from_proc" {

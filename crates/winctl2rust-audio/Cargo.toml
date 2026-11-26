@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "CoreAudio endpoint/session/subunit control, svcl DSL, PropertyStore AppAudioConfig codec, and WM_INPUT Volumouse rule engine for winctl2rust"
+description = "CoreAudio endpoint/session/subunit control, CLI verb DSL, PropertyStore per-app audio codec, and WM_INPUT wheel rule engine for winctl2rust"
 
 [features]
 default = []

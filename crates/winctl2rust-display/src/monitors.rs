@@ -176,7 +176,7 @@ fn parse_ini_i32(raw: &str, field: &str) -> WinctlResult<i32> {
 pub fn monitors_table_schema() -> TableSchema {
     TableSchema::new(
         "display_monitors",
-        "MultiMonitorTool Topology",
+        "Multi-Monitor Topology",
         vec![
             ColumnDef::new("monitor_id", "Monitor ID", ColumnType::Text).with_width_hint(220),
             ColumnDef::new("device_name", "Device Name", ColumnType::Text).with_width_hint(140),
@@ -229,7 +229,7 @@ impl TableProvider for MonitorsTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Enumerate multi-monitor topology, resolution, DPI scale, orientation, and primary display (MultiMonitorTool)"
+        "Enumerate multi-monitor topology, resolution, DPI scale, orientation, and primary display"
     }
 
     fn schema(&self) -> TableSchema {
@@ -299,7 +299,7 @@ impl ActionCommand for MonitorsApplyAction {
     }
 
     fn description(&self) -> &'static str {
-        "Apply MultiMonitorTool display topology changes (primary, enable/disable, move, resolution, orientation, save/load profile)"
+        "Apply multi-monitor display topology changes (primary, enable/disable, move, resolution, orientation, save/load profile)"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -443,7 +443,7 @@ impl ActionCommand for MonitorsApplyAction {
         if dry_run {
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview MultiMonitorTool display configuration without calling ChangeDisplaySettingsExW/SetDisplayConfig",
+                "Preview multi-monitor display configuration without calling ChangeDisplaySettingsExW/SetDisplayConfig",
                 json!({
                     "operation": op_norm,
                     "parsed_op": parsed_op,

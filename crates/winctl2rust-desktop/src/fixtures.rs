@@ -1,5 +1,5 @@
 use crate::backend::{
-    ClipboardFormatEntry, HotkeyEntry, InstalledFontEntry, KeyStateEntry, RawVideoFrame, SysExportItem, TopWindowInfo,
+    ClipboardFormatEntry, CtrlExportItem, HotkeyEntry, InstalledFontEntry, KeyStateEntry, RawVideoFrame, TopWindowInfo,
     TreeWindowNode, VideoPixelFormat, WebcamDeviceInfo, WindowPropInfo,
 };
 use crate::clipboard::build_clipboard_entry;
@@ -137,9 +137,9 @@ pub fn sample_tree_nodes() -> Vec<TreeWindowNode> {
     ]
 }
 
-pub fn sample_sysexport_items() -> Vec<SysExportItem> {
+pub fn sample_ctrl_export_items() -> Vec<CtrlExportItem> {
     vec![
-        SysExportItem {
+        CtrlExportItem {
             source_hwnd: 0x0001_0421,
             control_class: "SysListView32".to_string(),
             process_name: "guap_editor.exe".to_string(),
@@ -148,7 +148,7 @@ pub fn sample_sysexport_items() -> Vec<SysExportItem> {
             column_title: "Service".to_string(),
             item_text: "Winmgmt".to_string(),
         },
-        SysExportItem {
+        CtrlExportItem {
             source_hwnd: 0x0001_0421,
             control_class: "SysListView32".to_string(),
             process_name: "guap_editor.exe".to_string(),

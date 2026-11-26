@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn edid_input_parser_handles_bin_hex_dumpedid_and_reg_formats() {
+    fn edid_input_parser_handles_bin_hex_offset_dump_and_reg_formats() {
         let raw = synthetic_edid_256_bytes();
         assert_eq!(parse_edid_input(&raw).unwrap(), raw);
 
@@ -200,7 +200,7 @@ mod tests {
         let parsed_reg = parse_edid_input(reg_text.as_bytes()).unwrap();
         assert_eq!(parsed_reg, raw[..128]);
 
-        // DumpEDID offset format with trailing ASCII column
+        // Hex dump offset format with trailing ASCII column
         let mut dump_lines = String::new();
         for (row_idx, chunk) in raw.chunks(16).enumerate() {
             let hex_cols: Vec<String> = chunk.iter().map(|b| format!("{b:02X}")).collect();
@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn multimonitortool_ini_and_json_profiles_roundtrip() {
+    fn monitor_config_ini_and_json_profiles_roundtrip() {
         let profile = MonitorConfigProfile {
             monitors: topology_to_config_entries(&sample_monitors()),
         };

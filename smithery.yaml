@@ -17,18 +17,18 @@ build:
 # All 40 MCP endpoints (22 TableProviders + 18 ActionCommands) across -cmd, -audio, -display, and -desktop
 tools:
   # -cmd (4 tools / 10 endpoints)
-  - name: cmd_nircmd_preview
-    description: "Read-only table view parsing NirCmd DSL script lines into structured AST commands and dry-run previews."
-  - name: cmd_nircmd_parse
-    description: "Read-only parser & R4 compliance validator for NirCmd DSL scripts."
-  - name: cmd_nircmd
-    description: "Execute or dry-run preview NirCmd DSL commands without DLL injection or API hooking (mutating, policy-gated)."
+  - name: cmd_script_preview
+    description: "Read-only table view parsing command script DSL lines into structured AST commands and dry-run previews."
+  - name: cmd_script_parse
+    description: "Read-only parser & R4 compliance validator for command script DSL inputs."
+  - name: cmd_script
+    description: "Execute or dry-run preview command script DSL lines without DLL injection or API hooking (mutating, policy-gated)."
   - name: cmd_run_profiles
-    description: "Read-only table view listing and validating AdvancedRun launch profiles."
+    description: "Read-only table view listing and validating process launch profiles."
   - name: cmd_run_validate
-    description: "Read-only parser and validator for AdvancedRun INI/JSON launch profiles and UTF-16 environment blocks."
+    description: "Read-only parser and validator for INI/JSON launch profiles and UTF-16 environment blocks."
   - name: cmd_run
-    description: "Launch or dry-run preview a process using an AdvancedRun profile (working dir, priority, CPU affinity, window state, elevation)."
+    description: "Launch or dry-run preview a process using a launch profile (working dir, priority, CPU affinity, window state, elevation)."
   - name: cmd_from_proc_candidates
     description: "Read-only table view enumerating candidate parent processes via CreateToolhelp32Snapshot."
   - name: cmd_from_proc
@@ -40,66 +40,66 @@ tools:
 
   # -audio (4 tools / 8 endpoints)
   - name: audio_view
-    description: "Read-only table view enumerating CoreAudio endpoints, topology subunits, and per-application sessions (SoundVolumeView)."
+    description: "Read-only table view enumerating CoreAudio endpoints, topology subunits, and per-application sessions."
   - name: audio_view_control
     description: "Control CoreAudio endpoint/session volume, channel levels, dB, mute, default roles, and enable/disable state (mutating, policy-gated)."
-  - name: audio_svcl_status
-    description: "Read-only table view listing resolvable CoreAudio target selectors and svcl command examples."
-  - name: audio_svcl
-    description: "Parse and execute SoundVolumeCommandLine (svcl) verbs against CoreAudio (mutating, policy-gated)."
+  - name: audio_ctl_status
+    description: "Read-only table view listing resolvable CoreAudio target selectors and CLI verb examples."
+  - name: audio_ctl
+    description: "Parse and execute CoreAudio CLI control verbs against CoreAudio endpoints and sessions (mutating, policy-gated)."
   - name: audio_app_config
-    description: "Read-only table view inspecting per-application PolicyConfig PropertyStore audio blobs (AppAudioConfig)."
+    description: "Read-only table view inspecting per-application PolicyConfig PropertyStore audio blobs."
   - name: audio_app_config_update
     description: "Update or delete per-application PolicyConfig PropertyStore binary volume/mute/channel blobs (mutating, policy-gated)."
-  - name: audio_volumouse_rules
-    description: "Read-only table view inspecting Volumouse wheel and modifier volume rules."
-  - name: audio_volumouse
-    description: "Validate, evaluate, or apply Volumouse wheel/modifier volume rules via in-process WM_INPUT/WH_MOUSE_LL (mutating, policy-gated)."
+  - name: audio_wheel_rules
+    description: "Read-only table view inspecting mouse wheel and modifier volume rules."
+  - name: audio_wheel
+    description: "Validate, evaluate, or apply mouse wheel/modifier volume rules via in-process WM_INPUT/WH_MOUSE_LL (mutating, policy-gated)."
 
   # -display (4 tools / 6 endpoints)
   - name: display_monitors
-    description: "Read-only table view enumerating multi-monitor CCD topology, resolution, DPI scale, orientation, and primary display (MultiMonitorTool)."
+    description: "Read-only table view enumerating multi-monitor CCD topology, resolution, DPI scale, orientation, and primary display."
   - name: display_monitors_apply
-    description: "Apply MultiMonitorTool topology changes (primary, enable/disable, move, resolution, orientation, save/load profile; mutating, policy-gated)."
+    description: "Apply multi-monitor display topology changes (primary, enable/disable, move, resolution, orientation, save/load profile; mutating, policy-gated)."
   - name: display_ddc_vcp
-    description: "Read-only table view querying DDC/CI VCP monitor features and MCCS 2.2a metadata (ControlMyMonitor)."
+    description: "Read-only table view querying DDC/CI VCP monitor features and MCCS 2.2a metadata."
   - name: display_ddc_set
     description: "Set a DDC/CI VCP feature value on a physical monitor (mutating, policy-gated)."
   - name: display_info
-    description: "Read-only table view correlating active display targets with EDID serials and timing capabilities (MonitorInfoView)."
+    description: "Read-only table view correlating active display targets with EDID serials and timing capabilities."
   - name: display_edid
-    description: "Read-only table view parsing VESA EDID 1.3/1.4 and CEA-861 monitor descriptor blocks (DumpEDID)."
+    description: "Read-only table view parsing VESA EDID 1.3/1.4 and CEA-861 monitor descriptor blocks."
 
   # -desktop (10 tools / 16 endpoints)
   - name: desktop_props
-    description: "Read-only table view inspecting top-level and child window properties (GUIPropView)."
+    description: "Read-only table view inspecting top-level and child window properties."
   - name: desktop_props_control
     description: "Control window visibility, enabled state, topmost z-order, opacity, or close via Win32 APIs (mutating, policy-gated)."
   - name: desktop_windows
-    description: "Read-only table view listing open windows and placement bounds (WinLister)."
+    description: "Read-only table view listing open windows and placement bounds."
   - name: desktop_windows_control
     description: "Minimize, maximize, restore, focus, or close an open window (mutating, policy-gated)."
   - name: desktop_tree
-    description: "Read-only table view walking recursive HWND child window trees (WinExplorer)."
+    description: "Read-only table view walking recursive HWND child window trees."
   - name: desktop_tree_control
     description: "Update child/control window text, size, position, or visibility (mutating, policy-gated)."
-  - name: desktop_sysexport
-    description: "Read-only table view extracting SysListView32/SysTreeView32 item text via non-injecting LVM_GETITEMW/TVM_GETITEMW (SysExporter)."
+  - name: desktop_ctrl_export
+    description: "Read-only table view extracting SysListView32/SysTreeView32 item text via non-injecting LVM_GETITEMW/TVM_GETITEMW."
   - name: desktop_clipboard
-    description: "Read-only table view inspecting active clipboard formats, byte sizes, SHA-256 hashes, and previews (InsideClipboard)."
+    description: "Read-only table view inspecting active clipboard formats, byte sizes, SHA-256 hashes, and previews."
   - name: desktop_clipboard_control
     description: "Clear the Windows clipboard or set CF_UNICODETEXT content (mutating, policy-gated)."
   - name: desktop_clip_hist
-    description: "Read-only table view browsing local SQLite clipboard history archive (Clipboardic)."
+    description: "Read-only table view browsing local SQLite clipboard history archive."
   - name: desktop_clip_hist_control
     description: "Capture, restore, delete, clear, or export/import local SQLite/JSON clipboard history (mutating, policy-gated)."
   - name: desktop_hotkeys
-    description: "Read-only table view probing global hotkeys via RegisterHotKey and decoding .lnk wHotKey bindings (HotKeysList)."
+    description: "Read-only table view probing global hotkeys via RegisterHotKey and decoding .lnk wHotKey bindings."
   - name: desktop_keys
-    description: "Read-only table view inspecting virtual key states, scan codes, and localized key names (KeyboardStateView)."
+    description: "Read-only table view inspecting virtual key states, scan codes, and localized key names."
   - name: desktop_fonts
-    description: "Read-only table view enumerating installed fonts and decoding OpenType name/OS2 tables (WinFontsView)."
+    description: "Read-only table view enumerating installed fonts and decoding OpenType name/OS2 tables."
   - name: desktop_webcam
-    description: "Read-only table view enumerating Media Foundation video capture devices (WebCamImageSave)."
+    description: "Read-only table view enumerating Media Foundation video capture devices."
   - name: desktop_webcam_capture
     description: "Capture a still frame from a Media Foundation webcam and save as 24-bit BMP or P6 PPM (mutating, policy-gated)."

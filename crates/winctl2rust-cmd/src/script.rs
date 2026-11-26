@@ -14,7 +14,7 @@ use winctl2rust_core::{WinctlError, WinctlResult, dry_run_preview, validate_r4_c
 use crate::backend::CmdBackend;
 use crate::run::WindowState;
 
-pub type NirCmdVars = BTreeMap<String, String>;
+pub type ScriptVars = BTreeMap<String, String>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClipboardOp {
@@ -104,7 +104,7 @@ pub enum PowerAction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub enum NirCommand {
+pub enum ScriptCommand {
     Speak {
         text: String,
         async_mode: bool,
@@ -183,7 +183,7 @@ pub enum NirCommand {
     },
 }
 
-impl NirCommand {
+impl ScriptCommand {
     pub fn verb_name(&self) -> &'static str {
         match self {
             Self::Speak { .. } => "speak",
@@ -239,20 +239,20 @@ impl NirCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ParsedNirCommand {
+pub struct ParsedScriptCommand {
     pub line_no: usize,
     pub raw_line: String,
-    pub command: NirCommand,
+    pub command: ScriptCommand,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NirCmdStepResult {
+pub struct ScriptStepResult {
     pub verb: String,
     pub applied: bool,
     pub detail: String,
 }
 
-pub fn expand_vars(input: &str, vars: &NirCmdVars) -> String {
+pub fn expand_vars(input: &str, vars: &ScriptVars) -> String {
     let mut out = String::with_capacity(input.len());
     let chars: Vec<char> = input.chars().collect();
     let mut i = 0usize;
@@ -294,7 +294,7 @@ pub fn expand_vars(input: &str, vars: &NirCmdVars) -> String {
     out
 }
 
-fn resolve_builtin_or_custom_var(key: &str, vars: &NirCmdVars) -> Option<String> {
+fn resolve_builtin_or_custom_var(key: &str, vars: &ScriptVars) -> Option<String> {
     if let Some(v) = vars.get(key) {
         return Some(v.clone());
     }
@@ -356,7 +356,7 @@ pub fn tokenize_line(line: &str) -> WinctlResult<Vec<String>> {
 
     if in_quotes {
         return Err(WinctlError::ParseError(
-            "unterminated double quote in NirCmd line".to_string(),
+            "unterminated double quote in script line".to_string(),
         ));
     }
     if token_started {
@@ -366,7 +366,7 @@ pub fn tokenize_line(line: &str) -> WinctlResult<Vec<String>> {
     Ok(tokens)
 }
 
-pub fn parse_script(script: &str, vars: &NirCmdVars) -> WinctlResult<Vec<ParsedNirCommand>> {
+pub fn parse_script(script: &str, vars: &ScriptVars) -> WinctlResult<Vec<ParsedScriptCommand>> {
     let mut commands = Vec::new();
     for (idx, raw) in script.lines().enumerate() {
         let line_no = idx + 1;
@@ -385,7 +385,7 @@ pub fn parse_script(script: &str, vars: &NirCmdVars) -> WinctlResult<Vec<ParsedN
             WinctlError::InvalidInput(msg) => WinctlError::InvalidInput(format!("line {line_no}: {msg}")),
             other => other,
         })?;
-        commands.push(ParsedNirCommand {
+        commands.push(ParsedScriptCommand {
             line_no,
             raw_line: trimmed.to_string(),
             command,
@@ -393,13 +393,13 @@ pub fn parse_script(script: &str, vars: &NirCmdVars) -> WinctlResult<Vec<ParsedN
     }
     if commands.is_empty() {
         return Err(WinctlError::InvalidInput(
-            "NirCmd script contains no executable statements".to_string(),
+            "command script contains no executable statements".to_string(),
         ));
     }
     Ok(commands)
 }
 
-fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
+fn parse_command_tokens(tokens: &[String]) -> WinctlResult<ScriptCommand> {
     let verb = tokens[0].to_ascii_lowercase();
     let args = &tokens[1..];
 
@@ -413,7 +413,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     return Err(WinctlError::ParseError("speak text requires <text>".to_string()));
                 }
                 let async_mode = args.get(2).is_some_and(|s| s.eq_ignore_ascii_case("async"));
-                Ok(NirCommand::Speak {
+                Ok(ScriptCommand::Speak {
                     text: args[1].clone(),
                     async_mode,
                 })
@@ -424,7 +424,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                 } else {
                     args.join(" ")
                 };
-                Ok(NirCommand::Speak { text, async_mode })
+                Ok(ScriptCommand::Speak { text, async_mode })
             }
         }
         "clipboard" => {
@@ -437,12 +437,12 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     let text = args
                         .get(1)
                         .ok_or_else(|| WinctlError::ParseError("clipboard set requires <text>".to_string()))?;
-                    Ok(NirCommand::Clipboard {
+                    Ok(ScriptCommand::Clipboard {
                         op: ClipboardOp::Set,
                         text: Some(text.clone()),
                     })
                 }
-                "clear" => Ok(NirCommand::Clipboard {
+                "clear" => Ok(ScriptCommand::Clipboard {
                     op: ClipboardOp::Clear,
                     text: None,
                 }),
@@ -465,7 +465,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     )));
                 }
             };
-            Ok(NirCommand::MuteSysVolume { mode })
+            Ok(ScriptCommand::MuteSysVolume { mode })
         }
         "setsysvolume" => {
             let raw = args
@@ -474,7 +474,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
             let level: u16 = raw
                 .parse()
                 .map_err(|_| WinctlError::ParseError(format!("invalid volume '{raw}'")))?;
-            Ok(NirCommand::SetVolume {
+            Ok(ScriptCommand::SetVolume {
                 device: 0,
                 left: level,
                 right: level,
@@ -495,7 +495,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
             let right: u16 = args[2]
                 .parse()
                 .map_err(|_| WinctlError::ParseError(format!("invalid right volume '{}'", args[2])))?;
-            Ok(NirCommand::SetVolume { device, left, right })
+            Ok(ScriptCommand::SetVolume { device, left, right })
         }
         "monitor" => {
             let raw = args
@@ -510,9 +510,9 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     return Err(WinctlError::ParseError(format!("unsupported monitor state '{other}'")));
                 }
             };
-            Ok(NirCommand::Monitor { state })
+            Ok(ScriptCommand::Monitor { state })
         }
-        "screensaver" => Ok(NirCommand::ScreenSaver),
+        "screensaver" => Ok(ScriptCommand::ScreenSaver),
         "shortcut" => {
             if args.len() < 3 {
                 return Err(WinctlError::ParseError(
@@ -542,7 +542,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                         .map_err(|_| WinctlError::ParseError(format!("invalid shortcut hotkey '{s}'")))
                 })
                 .transpose()?;
-            Ok(NirCommand::Shortcut {
+            Ok(ScriptCommand::Shortcut {
                 target: args[0].clone(),
                 folder: args[1].clone(),
                 title: args[2].clone(),
@@ -581,7 +581,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     "inifile delval requires <file> <section> <key>".to_string(),
                 ));
             }
-            Ok(NirCommand::IniFile {
+            Ok(ScriptCommand::IniFile {
                 op,
                 file: PathBuf::from(&args[1]),
                 section: args[2].clone(),
@@ -609,7 +609,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                 }
             };
             validate_registry_key_hive(&args[1])?;
-            Ok(NirCommand::RegSetVal {
+            Ok(ScriptCommand::RegSetVal {
                 reg_type,
                 key: args[1].clone(),
                 value_name: args[2].clone(),
@@ -632,7 +632,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     return Err(WinctlError::ParseError(format!("unsupported service action '{other}'")));
                 }
             };
-            Ok(NirCommand::Service {
+            Ok(ScriptCommand::Service {
                 action,
                 name: args[1].clone(),
             })
@@ -677,7 +677,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     ));
                 }
             }
-            Ok(NirCommand::Win {
+            Ok(ScriptCommand::Win {
                 action,
                 find_by,
                 target,
@@ -701,7 +701,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
             let duration_ms: u32 = args[1]
                 .parse()
                 .map_err(|_| WinctlError::ParseError(format!("invalid beep duration '{}'", args[1])))?;
-            Ok(NirCommand::Beep { freq_hz, duration_ms })
+            Ok(ScriptCommand::Beep { freq_hz, duration_ms })
         }
         "wait" => {
             let raw = args
@@ -710,7 +710,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
             let ms: u64 = raw
                 .parse()
                 .map_err(|_| WinctlError::ParseError(format!("invalid wait ms '{raw}'")))?;
-            Ok(NirCommand::Wait { ms })
+            Ok(ScriptCommand::Wait { ms })
         }
         "exec" | "execmd" => {
             if args.len() < 2 {
@@ -721,7 +721,7 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
             let show_mode = WindowState::parse_str(&args[0])?;
             let exe = args[1].clone();
             let extra = args[2..].to_vec();
-            Ok(NirCommand::Exec {
+            Ok(ScriptCommand::Exec {
                 show_mode,
                 exe,
                 args: extra,
@@ -733,14 +733,14 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                     "shellexec requires <verb> <target> [params] [dir]".to_string(),
                 ));
             }
-            Ok(NirCommand::ShellExec {
+            Ok(ScriptCommand::ShellExec {
                 verb: args[0].clone(),
                 target: args[1].clone(),
                 params: args.get(2).filter(|s| !s.is_empty()).cloned(),
                 dir: args.get(3).filter(|s| !s.is_empty()).cloned(),
             })
         }
-        "lockws" => Ok(NirCommand::Power {
+        "lockws" => Ok(ScriptCommand::Power {
             action: PowerAction::LockWorkstation,
         }),
         "exitwin" => {
@@ -755,9 +755,9 @@ fn parse_command_tokens(tokens: &[String]) -> WinctlResult<NirCommand> {
                 "shutdown" | "poweroff" => PowerAction::Shutdown { force },
                 other => return Err(WinctlError::ParseError(format!("unsupported exitwin mode '{other}'"))),
             };
-            Ok(NirCommand::Power { action })
+            Ok(ScriptCommand::Power { action })
         }
-        other => Err(WinctlError::ParseError(format!("unsupported NirCmd verb '{other}'"))),
+        other => Err(WinctlError::ParseError(format!("unsupported script verb '{other}'"))),
     }
 }
 
@@ -907,8 +907,8 @@ pub fn apply_ini_operation(
 
 pub fn preview_table_schema() -> TableSchema {
     TableSchema::new(
-        "cmd_nircmd_preview",
-        "NirCmd DSL Preview",
+        "cmd_script_preview",
+        "Command Script DSL Preview",
         vec![
             ColumnDef::new("line_no", "Line", ColumnType::Uint).with_width_hint(70),
             ColumnDef::new("verb", "Verb", ColumnType::Text).with_width_hint(130),
@@ -921,7 +921,7 @@ pub fn preview_table_schema() -> TableSchema {
     )
 }
 
-pub fn script_to_table_rows(script: &str, vars: &NirCmdVars) -> WinctlResult<Vec<Row>> {
+pub fn script_to_table_rows(script: &str, vars: &ScriptVars) -> WinctlResult<Vec<Row>> {
     let parsed = parse_script(script, vars)?;
     let rows = parsed
         .into_iter()
@@ -946,16 +946,16 @@ pub fn script_to_table_rows(script: &str, vars: &NirCmdVars) -> WinctlResult<Vec
     Ok(rows)
 }
 
-pub struct NirCmdPreviewProvider {
+pub struct ScriptPreviewProvider {
     sample_script: String,
 }
 
-impl Default for NirCmdPreviewProvider {
+impl Default for ScriptPreviewProvider {
     fn default() -> Self {
         Self {
             sample_script: concat!(
-                "# Built-in non-hooking NirCmd DSL preview examples\n",
-                "speak \"Winctl2Rust NirCmd DSL ready\"\n",
+                "# Built-in non-hooking command script DSL preview examples\n",
+                "speak \"Winctl2Rust command script DSL ready\"\n",
                 "beep 880 120\n",
                 "clipboard set \"winctl2rust\"\n",
                 "mutesysvolume 2\n",
@@ -966,7 +966,7 @@ impl Default for NirCmdPreviewProvider {
     }
 }
 
-impl NirCmdPreviewProvider {
+impl ScriptPreviewProvider {
     pub fn with_script(script: impl Into<String>) -> Self {
         Self {
             sample_script: script.into(),
@@ -974,13 +974,13 @@ impl NirCmdPreviewProvider {
     }
 }
 
-impl TableProvider for NirCmdPreviewProvider {
+impl TableProvider for ScriptPreviewProvider {
     fn tool_id(&self) -> &'static str {
-        "cmd_nircmd_preview"
+        "cmd_script_preview"
     }
 
     fn description(&self) -> &'static str {
-        "Parse and preview NirCmd DSL statements (non-hooking pure-Rust parser)"
+        "Parse and preview command script DSL statements (non-hooking pure-Rust parser)"
     }
 
     fn schema(&self) -> TableSchema {
@@ -992,21 +992,21 @@ impl TableProvider for NirCmdPreviewProvider {
     }
 
     fn query(&self, req: &TableQuery) -> Result<TableData, TableError> {
-        let rows = script_to_table_rows(&self.sample_script, &NirCmdVars::new())
+        let rows = script_to_table_rows(&self.sample_script, &ScriptVars::new())
             .map_err(|e| TableError::Provider(e.to_string()))?;
         apply_query(&self.schema(), &rows, req)
     }
 }
 
-pub struct NirCmdParseAction;
+pub struct ScriptParseAction;
 
-impl ActionCommand for NirCmdParseAction {
+impl ActionCommand for ScriptParseAction {
     fn command_id(&self) -> &'static str {
-        "cmd_nircmd_parse"
+        "cmd_script_parse"
     }
 
     fn description(&self) -> &'static str {
-        "Read-only parser and R4 validator for NirCmd DSL scripts"
+        "Read-only parser and R4 validator for command script DSL inputs"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -1017,7 +1017,7 @@ impl ActionCommand for NirCmdParseAction {
         json!({
             "type": "object",
             "properties": {
-                "script": { "type": "string", "description": "One or more NirCmd DSL lines" },
+                "script": { "type": "string", "description": "One or more command script DSL lines" },
                 "vars": { "type": "object", "additionalProperties": { "type": "string" } }
             },
             "required": ["script"]
@@ -1039,23 +1039,23 @@ impl ActionCommand for NirCmdParseAction {
     }
 }
 
-pub struct NirCmdAction {
+pub struct ScriptAction {
     backend: Arc<dyn CmdBackend>,
 }
 
-impl NirCmdAction {
+impl ScriptAction {
     pub fn new(backend: Arc<dyn CmdBackend>) -> Self {
         Self { backend }
     }
 }
 
-impl ActionCommand for NirCmdAction {
+impl ActionCommand for ScriptAction {
     fn command_id(&self) -> &'static str {
-        "cmd_nircmd"
+        "cmd_script"
     }
 
     fn description(&self) -> &'static str {
-        "Parse, dry-run preview, or execute NirCmd DSL commands without DLL injection or API hooking"
+        "Parse, dry-run preview, or execute command script DSL lines without DLL injection or API hooking"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -1066,7 +1066,7 @@ impl ActionCommand for NirCmdAction {
         json!({
             "type": "object",
             "properties": {
-                "script": { "type": "string", "description": "NirCmd DSL script (newline-separated commands)" },
+                "script": { "type": "string", "description": "Command script DSL (newline-separated commands)" },
                 "vars": { "type": "object", "additionalProperties": { "type": "string" } }
             },
             "required": ["script"]
@@ -1095,14 +1095,14 @@ impl ActionCommand for NirCmdAction {
                 .collect::<Vec<_>>();
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview NirCmd DSL execution without modifying OS state",
+                "Preview command script DSL execution without modifying OS state",
                 Value::Array(plan),
             ));
         }
 
         let mut results = Vec::with_capacity(parsed.len());
         for step in &parsed {
-            let res = self.backend.execute_nircmd(&step.command).map_err(McpToolError::from)?;
+            let res = self.backend.execute_script(&step.command).map_err(McpToolError::from)?;
             results.push(res);
         }
 
@@ -1115,8 +1115,8 @@ impl ActionCommand for NirCmdAction {
     }
 }
 
-fn extract_vars(args: &Value) -> Result<NirCmdVars, McpToolError> {
-    let mut vars = NirCmdVars::new();
+fn extract_vars(args: &Value) -> Result<ScriptVars, McpToolError> {
+    let mut vars = ScriptVars::new();
     if let Some(obj) = args.get("vars").and_then(Value::as_object) {
         for (k, v) in obj {
             let s = v

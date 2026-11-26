@@ -201,7 +201,7 @@ impl DisplayBackend for UnsupportedDisplayBackend {
 
     fn apply_monitor_action(&self, op: &MonitorApplyOp) -> WinctlResult<MonitorApplyResult> {
         Err(WinctlError::UnsupportedOnPlatform(format!(
-            "MultiMonitorTool display configuration ({op:?}) requires Windows"
+            "Multi-monitor display configuration ({op:?}) requires Windows"
         )))
     }
 

@@ -83,7 +83,7 @@ pub fn is_extended_vk(vk: u8) -> bool {
 pub fn keys_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_keys",
-        "KeyboardStateView Virtual Key States",
+        "Virtual Key States",
         vec![
             ColumnDef::new("vk_code", "VK Code", ColumnType::Hex).with_width_hint(85),
             ColumnDef::new("vk_name", "VK Name", ColumnType::Text).with_width_hint(140),
@@ -128,7 +128,7 @@ impl TableProvider for KeysTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Inspect virtual key pressed/toggled states, scan codes, and localized key names (KeyboardStateView)"
+        "Inspect virtual key pressed/toggled states, scan codes, and localized key names"
     }
 
     fn schema(&self) -> TableSchema {

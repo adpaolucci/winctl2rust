@@ -82,7 +82,7 @@ pub fn format_probe_hotkey(mods: u32, vk: u32) -> (String, String) {
 pub fn hotkeys_table_schema() -> TableSchema {
     TableSchema::new(
         "desktop_hotkeys",
-        "HotKeysList Registered Hotkeys & .lnk Bindings",
+        "Registered Hotkeys & .lnk Bindings",
         vec![
             ColumnDef::new("source", "Source", ColumnType::Text).with_width_hint(120),
             ColumnDef::new("hotkey", "Hotkey", ColumnType::Text).with_width_hint(150),
@@ -127,7 +127,7 @@ impl TableProvider for HotkeysTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Probe global hotkeys via RegisterHotKey and decode [MS-SHLLINK] .lnk wHotKey bindings (HotKeysList)"
+        "Probe global hotkeys via RegisterHotKey and decode [MS-SHLLINK] .lnk wHotKey bindings"
     }
 
     fn schema(&self) -> TableSchema {

@@ -3,8 +3,8 @@
 pub mod atnow;
 pub mod backend;
 pub mod from_proc;
-pub mod nircmd;
 pub mod run;
+pub mod script;
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
@@ -35,7 +35,7 @@ pub fn default_backend() -> Arc<dyn CmdBackend> {
 
 pub fn providers(backend: Arc<dyn CmdBackend>) -> Vec<Arc<dyn TableProvider>> {
     vec![
-        Arc::new(nircmd::NirCmdPreviewProvider::default()),
+        Arc::new(script::ScriptPreviewProvider::default()),
         Arc::new(run::RunProfilesTableProvider::default()),
         Arc::new(from_proc::FromProcessTableProvider::new(Arc::clone(&backend))),
         Arc::new(atnow::AtNowTasksTableProvider::new(backend)),
@@ -44,8 +44,8 @@ pub fn providers(backend: Arc<dyn CmdBackend>) -> Vec<Arc<dyn TableProvider>> {
 
 pub fn actions(backend: Arc<dyn CmdBackend>) -> Vec<Arc<dyn ActionCommand>> {
     vec![
-        Arc::new(nircmd::NirCmdParseAction),
-        Arc::new(nircmd::NirCmdAction::new(Arc::clone(&backend))),
+        Arc::new(script::ScriptParseAction),
+        Arc::new(script::ScriptAction::new(Arc::clone(&backend))),
         Arc::new(run::RunValidateAction),
         Arc::new(run::RunLaunchAction::new(Arc::clone(&backend))),
         Arc::new(from_proc::FromProcessAction::new(Arc::clone(&backend))),
@@ -126,7 +126,7 @@ mod tests {
         assert_eq!(list.as_array().unwrap().len(), 10);
 
         for table_id in [
-            "cmd_nircmd_preview",
+            "cmd_script_preview",
             "cmd_run_profiles",
             "cmd_from_proc_candidates",
             "cmd_atnow_tasks",
@@ -136,7 +136,7 @@ mod tests {
         }
 
         let parsed = registry
-            .dispatch("cmd_nircmd_parse", &json!({ "script": "beep 440 100" }))
+            .dispatch("cmd_script_parse", &json!({ "script": "beep 440 100" }))
             .unwrap();
         assert_eq!(parsed["valid"], json!(true));
 
@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(validated["valid"], json!(true));
 
         let mutating_calls = [
-            ("cmd_nircmd", json!({ "script": "beep 440 100", "dry_run": true })),
+            ("cmd_script", json!({ "script": "beep 440 100", "dry_run": true })),
             ("cmd_run", json!({ "exe_path": "notepad.exe", "dry_run": true })),
             (
                 "cmd_from_proc",
@@ -176,16 +176,16 @@ mod tests {
             assert_eq!(res["dry_run"], json!(true));
             assert_eq!(res["applied"], json!(false));
         }
-        assert!(mock.executed_nircmds.lock().unwrap().is_empty());
+        assert!(mock.executed_scripts.lock().unwrap().is_empty());
 
-        let res_nir = registry
+        let res_script = registry
             .dispatch(
-                "cmd_nircmd",
+                "cmd_script",
                 &json!({ "script": "beep 440 100", "confirm_destructive": true, "dry_run": false }),
             )
             .unwrap();
-        assert_eq!(res_nir["applied"], json!(true));
-        assert_eq!(mock.executed_nircmds.lock().unwrap().len(), 1);
+        assert_eq!(res_script["applied"], json!(true));
+        assert_eq!(mock.executed_scripts.lock().unwrap().len(), 1);
 
         let res_run = registry
             .dispatch(

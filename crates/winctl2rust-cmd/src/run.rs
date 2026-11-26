@@ -462,13 +462,13 @@ impl TableProvider for RunProfilesTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Inspect and validate AdvancedRun launch profiles"
+        "Inspect and validate process launch profiles"
     }
 
     fn schema(&self) -> TableSchema {
         TableSchema::new(
             "cmd_run_profiles",
-            "AdvancedRun Launch Profiles",
+            "Process Launch Profiles",
             vec![
                 ColumnDef::new("profile_name", "Profile", ColumnType::Text).with_width_hint(140),
                 ColumnDef::new("exe_path", "Executable", ColumnType::Text).with_width_hint(240),
@@ -534,7 +534,7 @@ impl ActionCommand for RunValidateAction {
     }
 
     fn description(&self) -> &'static str {
-        "Read-only parser and validator for AdvancedRun JSON or INI launch profiles"
+        "Read-only parser and validator for JSON or INI launch profiles"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -546,7 +546,7 @@ impl ActionCommand for RunValidateAction {
             "type": "object",
             "properties": {
                 "profile": { "type": "object", "description": "LaunchProfile JSON object" },
-                "ini": { "type": "string", "description": "AdvancedRun INI/CFG text" }
+                "ini": { "type": "string", "description": "Launch profile INI/CFG text" }
             }
         })
     }
@@ -579,7 +579,7 @@ impl ActionCommand for RunLaunchAction {
     }
 
     fn description(&self) -> &'static str {
-        "Launch or dry-run preview an executable using an AdvancedRun profile"
+        "Launch or dry-run preview an executable using a launch profile"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
@@ -591,7 +591,7 @@ impl ActionCommand for RunLaunchAction {
             "type": "object",
             "properties": {
                 "profile": { "type": "object", "description": "LaunchProfile JSON object" },
-                "ini": { "type": "string", "description": "AdvancedRun INI/CFG text" }
+                "ini": { "type": "string", "description": "Launch profile INI/CFG text" }
             }
         })
     }
@@ -621,7 +621,7 @@ impl ActionCommand for RunLaunchAction {
             }
             return Ok(dry_run_preview(
                 self.command_id(),
-                "Preview AdvancedRun process launch without spawning process",
+                "Preview process launch without spawning process",
                 plan,
             ));
         }

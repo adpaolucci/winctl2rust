@@ -13,7 +13,7 @@ use crate::backend::{AudioBackend, AudioEndpointItem, DefaultRole, MuteAction};
 pub fn audio_view_schema() -> TableSchema {
     TableSchema::new(
         "audio_view",
-        "SoundVolumeView CoreAudio Items",
+        "CoreAudio Endpoints & Sessions",
         vec![
             ColumnDef::new("item_id", "Item ID", ColumnType::Text).with_width_hint(260),
             ColumnDef::new("name", "Name", ColumnType::Text).with_width_hint(220),
@@ -88,7 +88,7 @@ impl TableProvider for AudioViewTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Enumerate CoreAudio endpoints, topology subunits, and per-application audio sessions (SoundVolumeView)"
+        "Enumerate CoreAudio endpoints, topology subunits, and per-application audio sessions"
     }
 
     fn schema(&self) -> TableSchema {

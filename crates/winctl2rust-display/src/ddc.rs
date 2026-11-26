@@ -460,7 +460,7 @@ fn walk_cap_nodes(nodes: &[CapNode], out: &mut ParsedDdcCapabilities) -> WinctlR
 pub fn ddc_vcp_schema() -> TableSchema {
     TableSchema::new(
         "display_ddc_vcp",
-        "ControlMyMonitor DDC/CI VCP Features",
+        "DDC/CI VCP Features",
         vec![
             ColumnDef::new("monitor_name", "Monitor", ColumnType::Text).with_width_hint(200),
             ColumnDef::new("vcp_code_hex", "VCP Code", ColumnType::Text).with_width_hint(90),
@@ -489,7 +489,7 @@ impl TableProvider for DdcVcpTableProvider {
     }
 
     fn description(&self) -> &'static str {
-        "Query DDC/CI VCP features and MCCS 2.2a monitor capabilities (ControlMyMonitor)"
+        "Query DDC/CI VCP features and MCCS 2.2a monitor capabilities"
     }
 
     fn schema(&self) -> TableSchema {
@@ -592,7 +592,7 @@ impl ActionCommand for DdcSetVcpAction {
     }
 
     fn description(&self) -> &'static str {
-        "Set a DDC/CI VCP feature value on a physical monitor (ControlMyMonitor)"
+        "Set a DDC/CI VCP feature value on a physical monitor"
     }
 
     fn risk_level(&self) -> ActionRiskLevel {
