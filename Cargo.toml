@@ -16,7 +16,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 license = "Apache-2.0"
 repository = "https://github.com/adpaolucci/winctl2rust"
 homepage = "https://guap.ca/winctl2rust/"
@@ -59,7 +59,7 @@ windows = "0.62"
 windows-core = "0.62"
 winsafe = { version = "0.0.29", features = ["gui", "shell"] }
 iced = { version = "0.14", features = ["wgpu", "tiny-skia", "tokio"] }
-rusqlite = { version = "0.34", features = ["bundled"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
 rfd = "0.18"
 arboard = "3.7"
 tempfile = "3.27"
