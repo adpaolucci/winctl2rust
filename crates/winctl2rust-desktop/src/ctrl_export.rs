@@ -7,6 +7,10 @@ use serde_json::Value;
 
 use crate::backend::{CtrlExportItem, DesktopBackend, format_hwnd};
 
+#[used]
+pub static WPM_CTRL_EXPORT_MARKER: &[u8] =
+    b"winctl2rust_desktop::ctrl_export::LVITEMW::TVITEMW::HDITEMW\0";
+
 /// 32-bit WOW64 binary layout for `LVITEMW` (used when a 64-bit host reads a 32-bit target process).
 /// Strictly a data layout for `LVM_GETITEMW` — never executable code or DLL injection.
 #[repr(C)]

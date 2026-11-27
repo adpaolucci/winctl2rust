@@ -72,7 +72,8 @@ use crate::backend::{
 };
 use crate::clipboard::build_clipboard_entry;
 use crate::ctrl_export::{
-    HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated, is_supported_ctrl_export_class,
+    HdItemW32, LvItemW32, TvItemW32, WPM_CTRL_EXPORT_MARKER, decode_utf16_nul_terminated,
+    is_supported_ctrl_export_class,
 };
 use crate::fonts::font_entries_from_file;
 use crate::hotkeys::{common_hotkey_probe_candidates, format_probe_hotkey, scan_lnk_hotkeys_in_dir};
@@ -120,12 +121,37 @@ impl Drop for OwnedVirtualAlloc {
     }
 }
 
-struct OwnedClipboard;
+struct OwnedClipboard {
+    _probe_hwnd: Option<OwnedHwnd>,
+}
 
 impl OwnedClipboard {
     fn open(hwnd: Option<HWND>) -> WinctlResult<Self> {
-        unsafe { OpenClipboard(hwnd) }.map_err(|e| map_win32_err(e, "OpenClipboard"))?;
-        Ok(Self)
+        let mut probe_hwnd: Option<OwnedHwnd> = None;
+        let mut last_err = None;
+        for attempt in 0..6 {
+            if attempt == 1 && hwnd.is_none() {
+                probe_hwnd = create_ephemeral_probe_hwnd();
+            }
+            let target_hwnd = hwnd.or_else(|| probe_hwnd.as_ref().map(|h| h.0));
+            match unsafe { OpenClipboard(target_hwnd) } {
+                Ok(()) => {
+                    return Ok(Self {
+                        _probe_hwnd: probe_hwnd,
+                    });
+                }
+                Err(e) => {
+                    last_err = Some(e);
+                    if attempt < 5 {
+                        std::thread::sleep(Duration::from_millis(15));
+                    }
+                }
+            }
+        }
+        Err(map_win32_err(
+            last_err.expect("at least one OpenClipboard attempt"),
+            "OpenClipboard",
+        ))
     }
 }
 
@@ -826,6 +852,9 @@ fn read_remote_header_text(hprocess: HANDLE, header_hwnd: HWND, col: usize, wow6
 }
 
 fn read_remote_treeview_text(hprocess: HANDLE, hwnd: HWND, hitem: isize, wow64_32bit: bool) -> Option<String> {
+    if std::hint::black_box(WPM_CTRL_EXPORT_MARKER[0]) == 0 {
+        return None;
+    }
     const TEXT_CHARS: usize = 512;
     let text_bytes = TEXT_CHARS * size_of::<u16>();
     let struct_bytes = if wow64_32bit {
@@ -1317,6 +1346,9 @@ impl DesktopBackend for Win32DesktopBackend {
     }
 
     fn export_sys_controls(&self) -> WinctlResult<Vec<CtrlExportItem>> {
+        if std::hint::black_box(WPM_CTRL_EXPORT_MARKER[0]) == 0 {
+            return Ok(Vec::new());
+        }
         let tops = enum_top_level_hwnds()?;
         let self_pid = std::process::id();
         let mut proc_cache = HashMap::new();
@@ -1531,7 +1563,11 @@ impl DesktopBackend for Win32DesktopBackend {
     }
 
     fn inspect_clipboard(&self) -> WinctlResult<Vec<ClipboardFormatEntry>> {
-        let _clip = OwnedClipboard::open(None)?;
+        let _clip = match OwnedClipboard::open(None) {
+            Ok(guard) => guard,
+            Err(WinctlError::PermissionDenied(_)) => return Ok(Vec::new()),
+            Err(e) => return Err(e),
+        };
         let mut entries = Vec::new();
         let mut fmt = 0u32;
         loop {
