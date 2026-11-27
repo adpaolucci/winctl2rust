@@ -7,7 +7,7 @@ Publisher: adpaolucci
 PublisherUrl: https://github.com/adpaolucci
 PublisherSupportUrl: https://github.com/adpaolucci/winctl2rust/issues
 PackageName: Winctl2Rust
-PackageUrl: https://winctl2rust.guap.ca
+PackageUrl: https://guap.ca/winctl2rust/
 License: Apache-2.0
 LicenseUrl: https://github.com/adpaolucci/winctl2rust/blob/main/LICENSE
 Copyright: Copyright (c) 2026 adpaolucci

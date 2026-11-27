@@ -1,6 +1,6 @@
 class Winctl2rust < Formula
   desc "Pure-Rust Iced GUI, CLI, and policy-gated MCP server for non-hooking Windows control & offline EDID/OpenType forensics"
-  homepage "https://winctl2rust.guap.ca"
+  homepage "https://guap.ca/winctl2rust/"
   version "0.1.0"
   license "Apache-2.0"
 

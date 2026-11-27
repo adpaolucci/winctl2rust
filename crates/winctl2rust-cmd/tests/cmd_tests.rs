@@ -118,7 +118,7 @@ fn script_dsl_parses_all_verbs_comments_quotes_and_vars() {
         beep 880 150
         wait 50
         exec hide "$app$" /p
-        shellexec open "https://winctl2rust.guap.ca"
+        shellexec open "https://guap.ca/winctl2rust/"
         lockws
         exitwin reboot force
     "#;
