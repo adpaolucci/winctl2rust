@@ -306,9 +306,8 @@ fn parse_ctl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedAudioC
         }
     }
 
-    let verb_name = primary_verb.ok_or_else(|| {
-        WinctlError::ParseError("audio ctl command line missing primary /Verb".to_string())
-    })?;
+    let verb_name = primary_verb
+        .ok_or_else(|| WinctlError::ParseError("audio ctl command line missing primary /Verb".to_string()))?;
 
     let verb = match verb_name.as_str() {
         "setvolume" => {
@@ -434,7 +433,9 @@ fn parse_ctl_token_pairs(tokens: &[(String, bool)]) -> WinctlResult<ParsedAudioC
             AudioCtlVerb::GetDecibel { target }
         }
         other => {
-            return Err(WinctlError::ParseError(format!("unsupported audio ctl verb '/{other}'")));
+            return Err(WinctlError::ParseError(format!(
+                "unsupported audio ctl verb '/{other}'"
+            )));
         }
     };
 

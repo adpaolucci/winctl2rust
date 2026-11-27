@@ -3,9 +3,9 @@
 pub mod backend;
 pub mod clip_hist;
 pub mod clipboard;
+pub mod ctrl_export;
 #[cfg(any(test, feature = "test-support"))]
 pub mod fixtures;
-pub mod ctrl_export;
 pub mod fonts;
 pub mod hotkeys;
 pub mod keys;

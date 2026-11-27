@@ -9,13 +9,13 @@ use tempfile::tempdir;
 use winctl2rust_cmd::atnow::{AtNowAction, AtNowScheduleResult, AtNowTaskInfo, AtNowTaskRequest, ScheduleTimeSpec};
 use winctl2rust_cmd::backend::{CmdBackend, UnsupportedCmdBackend};
 use winctl2rust_cmd::from_proc::{FromProcessRequest, FromProcessResult, ProcessSummary};
-use winctl2rust_cmd::script::{
-    IniOp, ScriptCommand, ScriptStepResult, ScriptVars, WinSelector, apply_ini_operation, expand_vars, parse_script,
-    tokenize_line,
-};
 use winctl2rust_cmd::run::{
     LaunchProfile, LaunchResult, PriorityClass, RunAsMode, RunLaunchAction, WindowState, parse_profile_ini,
     parse_profile_json, quote_windows_arg, tokenize_windows_args,
+};
+use winctl2rust_cmd::script::{
+    IniOp, ScriptCommand, ScriptStepResult, ScriptVars, WinSelector, apply_ini_operation, expand_vars, parse_script,
+    tokenize_line,
 };
 use winctl2rust_cmd::{bundle, providers};
 use winctl2rust_core::{WinctlError, WinctlResult};
@@ -131,7 +131,10 @@ fn script_dsl_parses_all_verbs_comments_quotes_and_vars() {
 
     let parsed = parse_script(script, &vars).unwrap();
     assert_eq!(parsed.len(), 19);
-    assert!(matches!(parsed[0].command, ScriptCommand::Speak { async_mode: true, .. }));
+    assert!(matches!(
+        parsed[0].command,
+        ScriptCommand::Speak { async_mode: true, .. }
+    ));
     assert!(matches!(parsed[1].command, ScriptCommand::Clipboard { .. }));
     assert!(matches!(parsed[15].command, ScriptCommand::Exec { ref exe, .. } if exe == "notepad.exe"));
     assert!(matches!(parsed[18].command, ScriptCommand::Power { .. }));

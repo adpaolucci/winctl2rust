@@ -66,12 +66,14 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::core::{BOOL, GUID, HSTRING, PWSTR, w};
 
 use crate::backend::{
-    ClipboardControlResult, ClipboardFormatEntry, CtrlExportItem, DesktopBackend, HotkeyEntry, HotkeyProbeResult, InstalledFontEntry,
-    KeyStateEntry, RawVideoFrame, TopWindowInfo, TreeControlOp, TreeWindowNode, VideoPixelFormat,
+    ClipboardControlResult, ClipboardFormatEntry, CtrlExportItem, DesktopBackend, HotkeyEntry, HotkeyProbeResult,
+    InstalledFontEntry, KeyStateEntry, RawVideoFrame, TopWindowInfo, TreeControlOp, TreeWindowNode, VideoPixelFormat,
     WebcamDeviceInfo, WindowControlResult, WindowListerOp, WindowPropInfo, WindowPropOp, format_hwnd,
 };
 use crate::clipboard::build_clipboard_entry;
-use crate::ctrl_export::{HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated, is_supported_ctrl_export_class};
+use crate::ctrl_export::{
+    HdItemW32, LvItemW32, TvItemW32, decode_utf16_nul_terminated, is_supported_ctrl_export_class,
+};
 use crate::fonts::font_entries_from_file;
 use crate::hotkeys::{common_hotkey_probe_candidates, format_probe_hotkey, scan_lnk_hotkeys_in_dir};
 use crate::keys::{is_extended_vk, vk_canonical_name};

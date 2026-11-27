@@ -304,11 +304,7 @@ pub trait AudioBackend: Send + Sync {
     fn set_app_default_device(&self, process_or_pid: &str, device_id: &str, roles: &[DefaultRole]) -> WinctlResult<()>;
     fn read_app_audio_configs(&self) -> WinctlResult<Vec<RawAppPropertyStoreRecord>>;
     fn write_app_audio_config(&self, subkey: &str, patch: &AppPropertyStorePatch) -> WinctlResult<()>;
-    fn run_wheel_listener(
-        &self,
-        rules: &[WheelRule],
-        opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<WheelActionResult>>;
+    fn run_wheel_listener(&self, rules: &[WheelRule], opts: &ListenerOptions) -> WinctlResult<Vec<WheelActionResult>>;
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -921,11 +917,7 @@ impl AudioBackend for MockAudioBackend {
         Ok(())
     }
 
-    fn run_wheel_listener(
-        &self,
-        rules: &[WheelRule],
-        opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<WheelActionResult>> {
+    fn run_wheel_listener(&self, rules: &[WheelRule], opts: &ListenerOptions) -> WinctlResult<Vec<WheelActionResult>> {
         self.check_faults()?;
         let events: Vec<PointerWheelEvent> = self
             .queued_wheel_events

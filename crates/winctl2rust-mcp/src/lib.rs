@@ -170,10 +170,7 @@ mod tests {
                 "audio_view_control",
                 json!({ "action": "set_volume", "target": "Speakers", "volume_percent": 50.0, "dry_run": true }),
             ),
-            (
-                "audio_ctl",
-                json!({ "command_line": "/Mute vlc.exe", "dry_run": true }),
-            ),
+            ("audio_ctl", json!({ "command_line": "/Mute vlc.exe", "dry_run": true })),
             (
                 "audio_app_config_update",
                 json!({ "subkey": "186430e1_0", "volume_percent": 40.0, "dry_run": true }),

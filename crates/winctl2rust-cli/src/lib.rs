@@ -1000,16 +1000,16 @@ fn handle_audio_wheel(cli: &Cli, bundle: &ToolBundle, args: &AudioWheelArgs) -> 
         .to_ascii_lowercase();
     let rules: Option<Vec<WheelRule>> = match &args.rules_file {
         Some(path) => {
-            let text = fs::read_to_string(path)
-                .with_context(|| format!("failed reading wheel rules {}", path.display()))?;
+            let text =
+                fs::read_to_string(path).with_context(|| format!("failed reading wheel rules {}", path.display()))?;
             Some(serde_json::from_str(&text).with_context(|| format!("invalid rules JSON in {}", path.display()))?)
         }
         None => None,
     };
     let events: Vec<PointerWheelEvent> = match &args.events_file {
         Some(path) => {
-            let text = fs::read_to_string(path)
-                .with_context(|| format!("failed reading wheel events {}", path.display()))?;
+            let text =
+                fs::read_to_string(path).with_context(|| format!("failed reading wheel events {}", path.display()))?;
             serde_json::from_str(&text).with_context(|| format!("invalid events JSON in {}", path.display()))?
         }
         None => Vec::new(),

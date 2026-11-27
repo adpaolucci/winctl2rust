@@ -1290,11 +1290,7 @@ impl AudioBackend for Win32AudioBackend {
         Ok(())
     }
 
-    fn run_wheel_listener(
-        &self,
-        rules: &[WheelRule],
-        opts: &ListenerOptions,
-    ) -> WinctlResult<Vec<WheelActionResult>> {
+    fn run_wheel_listener(&self, rules: &[WheelRule], opts: &ListenerOptions) -> WinctlResult<Vec<WheelActionResult>> {
         let hinstance = unsafe { GetModuleHandleW(None) }.map_err(|e| map_win32_err(e, "GetModuleHandleW"))?;
         let class_name = w!("Winctl2RustWheelRawInput");
         let wc = WNDCLASSEXW {

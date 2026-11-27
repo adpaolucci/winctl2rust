@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Checkout shared guap-kit workspace
+      run: git clone --depth 1 https://github.com/adpaolucci/guap-kit.git ../guap-kit
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libssl-dev \
+          libfontconfig1-dev \
+          libgtk-3-dev \
+          libx11-dev \
+          libxi-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libwayland-dev \
+          libxkbcommon-dev \
+          libxkbcommon-x11-dev \
+          libxcb-render0-dev \
+          libxcb-shape0-dev \
+          libxcb-xfixes0-dev
+
+    - name: Check Formatting
+      if: runner.os == 'Linux'
+      run: cargo fmt --check
+
+    - name: Clippy Linter
+      run: cargo clippy --workspace --all-targets -- -D warnings
+
+    - name: Run Tests
+      run: cargo test --workspace --verbose
+
+    - name: Build Release Binary
+      if: runner.os != 'macOS'
+      run: cargo build --workspace --release
+
+  deny:
+    name: Security & License Audit (cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Checkout shared guap-kit workspace
+      run: git clone --depth 1 https://github.com/adpaolucci/guap-kit.git ../guap-kit
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-deny
+      uses: taiki-e/install-action@cargo-deny
+
+    - name: Audit advisories, licenses, and sources
+      run: cargo deny check advisories licenses sources

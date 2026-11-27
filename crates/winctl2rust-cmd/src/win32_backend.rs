@@ -72,11 +72,11 @@ use crate::from_proc::{
     FromProcessRequest, FromProcessResult, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS_VALUE, PROCESS_CREATE_PROCESS_ACCESS,
     ProcessSummary,
 };
+use crate::run::{LaunchProfile, LaunchResult, PriorityClass, RunAsMode, WindowState};
 use crate::script::{
     ClipboardOp, MuteMode, PowerAction, RegValueKind, ScriptCommand, ScriptStepResult, ServiceAction, WinAction,
     WinSelector, apply_ini_operation,
 };
-use crate::run::{LaunchProfile, LaunchResult, PriorityClass, RunAsMode, WindowState};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Win32CmdBackend;
