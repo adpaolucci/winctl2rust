@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "100% pure-Rust non-hooking Windows command launcher, CoreAudio volume/rule controller, DDC/CI & EDID display manager, desktop/clipboard/font/webcam inspector, CLI, dual Win32/Iced GUIs, and policy-gated MCP server.",
   "repository": "https://github.com/adpaolucci/winctl2rust",
-  "homepage": "https://winctl2rust.guap.ca",
+  "homepage": "https://guap.ca/winctl2rust/",
   "license": "Apache-2.0",
   "binaries": [
     "winctl2rust",
@@ -18,5 +18,208 @@
     "VESA EDID 1.3/1.4 + CEA-861 parser, CCD multi-monitor layout & DDC/CI VCP control",
     "Desktop window/clipboard/hotkey/keyboard/OpenType font/Media Foundation webcam tools",
     "Policy-gated stdio MCP JSON-RPC 2.0 server, dual Win32/Iced GUIs & Merkle audit exports"
+  ],
+  "mcp_tools_count": 40,
+  "tools": [
+    {
+      "id": "audio_app_config",
+      "readOnly": true,
+      "summary": "Inspect per-application Windows PolicyConfig\\PropertyStore audio settings"
+    },
+    {
+      "id": "audio_ctl_status",
+      "readOnly": true,
+      "summary": "Inspect CoreAudio CLI verb grammar and live resolvable target selectors"
+    },
+    {
+      "id": "audio_view",
+      "readOnly": true,
+      "summary": "Enumerate CoreAudio endpoints, topology subunits, and per-application audio sessions"
+    },
+    {
+      "id": "audio_wheel_rules",
+      "readOnly": true,
+      "summary": "Inspect mouse wheel and modifier volume rules (in-process WM_INPUT engine)"
+    },
+    {
+      "id": "cmd_atnow_tasks",
+      "readOnly": true,
+      "summary": "List Windows Task Scheduler v2 tasks in the root folder"
+    },
+    {
+      "id": "cmd_from_proc_candidates",
+      "readOnly": true,
+      "summary": "Enumerate candidate parent processes for parent-attributed launch via ToolHelp32"
+    },
+    {
+      "id": "cmd_run_profiles",
+      "readOnly": true,
+      "summary": "Inspect and validate process launch profiles"
+    },
+    {
+      "id": "cmd_script_preview",
+      "readOnly": true,
+      "summary": "Parse and preview command script DSL statements (non-hooking pure-Rust parser)"
+    },
+    {
+      "id": "desktop_clip_hist",
+      "readOnly": true,
+      "summary": "Browse local SQLite clipboard history archive"
+    },
+    {
+      "id": "desktop_clipboard",
+      "readOnly": true,
+      "summary": "Inspect active Windows clipboard formats, byte sizes, SHA-256 hashes, and previews"
+    },
+    {
+      "id": "desktop_ctrl_export",
+      "readOnly": true,
+      "summary": "Read SysListView32/SysTreeView32/ListBox/ComboBox text via non-injecting cross-process messages"
+    },
+    {
+      "id": "desktop_fonts",
+      "readOnly": true,
+      "summary": "Enumerate installed Windows fonts and decode OpenType name/OS2 tables"
+    },
+    {
+      "id": "desktop_hotkeys",
+      "readOnly": true,
+      "summary": "Probe global hotkeys via RegisterHotKey and decode [MS-SHLLINK] .lnk wHotKey bindings"
+    },
+    {
+      "id": "desktop_keys",
+      "readOnly": true,
+      "summary": "Inspect virtual key pressed/toggled states, scan codes, and localized key names"
+    },
+    {
+      "id": "desktop_props",
+      "readOnly": true,
+      "summary": "Inspect top-level and child window properties, styles, bounds, and owning process"
+    },
+    {
+      "id": "desktop_tree",
+      "readOnly": true,
+      "summary": "Walk recursive HWND parent/child window trees and inspect control IDs, classes, and text"
+    },
+    {
+      "id": "desktop_webcam",
+      "readOnly": true,
+      "summary": "Enumerate Media Foundation video capture devices and native frame capabilities"
+    },
+    {
+      "id": "desktop_windows",
+      "readOnly": true,
+      "summary": "List open top-level windows with placement state and bounds"
+    },
+    {
+      "id": "display_ddc_vcp",
+      "readOnly": true,
+      "summary": "Query DDC/CI VCP features and MCCS 2.2a monitor capabilities"
+    },
+    {
+      "id": "display_edid",
+      "readOnly": true,
+      "summary": "Parse and inspect VESA EDID 1.3/1.4 and CEA-861 monitor descriptor blocks"
+    },
+    {
+      "id": "display_info",
+      "readOnly": true,
+      "summary": "Correlate live DisplayConfig monitor targets with EDID serials, gamma, primaries, and max timings"
+    },
+    {
+      "id": "display_monitors",
+      "readOnly": true,
+      "summary": "Enumerate multi-monitor topology, resolution, DPI scale, orientation, and primary display"
+    },
+    {
+      "id": "audio_app_config_update",
+      "readOnly": false,
+      "summary": "Update or remove per-application PolicyConfig\\PropertyStore binary volume/mute/channel blobs"
+    },
+    {
+      "id": "audio_ctl",
+      "readOnly": false,
+      "summary": "Parse and execute CoreAudio CLI control verbs against CoreAudio endpoints and sessions"
+    },
+    {
+      "id": "audio_view_control",
+      "readOnly": false,
+      "summary": "Control CoreAudio endpoint/session volume, mute, default roles, and device enable/disable state"
+    },
+    {
+      "id": "audio_wheel",
+      "readOnly": false,
+      "summary": "Evaluate or apply mouse wheel and modifier volume rules via in-process WM_INPUT (no DLL injection)"
+    },
+    {
+      "id": "cmd_atnow",
+      "readOnly": false,
+      "summary": "Schedule or dry-run preview a one-shot delayed task via Windows Task Scheduler v2 ITaskService"
+    },
+    {
+      "id": "cmd_from_proc",
+      "readOnly": false,
+      "summary": "Launch a child process with parent-process attribution via PROC_THREAD_ATTRIBUTE_PARENT_PROCESS (non-injecting)"
+    },
+    {
+      "id": "cmd_run",
+      "readOnly": false,
+      "summary": "Launch or dry-run preview an executable using a launch profile"
+    },
+    {
+      "id": "cmd_run_validate",
+      "readOnly": true,
+      "summary": "Read-only parser and validator for JSON or INI launch profiles"
+    },
+    {
+      "id": "cmd_script",
+      "readOnly": false,
+      "summary": "Parse, dry-run preview, or execute command script DSL lines without DLL injection or API hooking"
+    },
+    {
+      "id": "cmd_script_parse",
+      "readOnly": true,
+      "summary": "Read-only parser and R4 validator for command script DSL inputs"
+    },
+    {
+      "id": "desktop_clip_hist_control",
+      "readOnly": false,
+      "summary": "Capture, restore, delete, clear, or export/import local SQLite/JSON clipboard history"
+    },
+    {
+      "id": "desktop_clipboard_control",
+      "readOnly": false,
+      "summary": "Clear the Windows clipboard or set CF_UNICODETEXT content"
+    },
+    {
+      "id": "desktop_props_control",
+      "readOnly": false,
+      "summary": "Control window visibility, enabled state, topmost z-order, opacity, or close via Win32 APIs"
+    },
+    {
+      "id": "desktop_tree_control",
+      "readOnly": false,
+      "summary": "Update child/control window text, size, position, or visibility"
+    },
+    {
+      "id": "desktop_webcam_capture",
+      "readOnly": false,
+      "summary": "Capture a still frame from a Media Foundation webcam and save as 24-bit BMP or P6 PPM"
+    },
+    {
+      "id": "desktop_windows_control",
+      "readOnly": false,
+      "summary": "Minimize, maximize, restore, focus, or close an open window"
+    },
+    {
+      "id": "display_ddc_set",
+      "readOnly": false,
+      "summary": "Set a DDC/CI VCP feature value on a physical monitor"
+    },
+    {
+      "id": "display_monitors_apply",
+      "readOnly": false,
+      "summary": "Apply multi-monitor display topology changes (primary, enable/disable, move, resolution, orientation, save/load profile)"
+    }
   ]
 }
