@@ -58,7 +58,7 @@ ctrlc = "3.5"
 windows = "0.62"
 windows-core = "0.62"
 winsafe = { version = "0.0.29", features = ["gui", "shell"] }
-iced = { version = "0.14", features = ["wgpu", "tiny-skia", "tokio"] }
+iced = { version = "0.14", default-features = false, features = ["tiny-skia", "crisp", "web-colors", "tokio", "linux-theme-detection", "x11", "wayland"] }
 rusqlite = { version = "0.43", features = ["bundled"] }
 rfd = "0.18"
 arboard = "3.7"
